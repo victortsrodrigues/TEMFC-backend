@@ -27,24 +27,42 @@ This project automates the process of downloading, processing, and analyzing hea
 ## 🗂️ Project Structure
 
 ```
-project/
-│
-├── databases/
-│   ├── estab_202411_159_152.db
-│   └── estabelecimentos_202411.db
-│
-├── assets/
-│   └── (Downloaded CSV files)
-│
-├── src/
-│   ├── establishment_validator.py
-│   ├── main.py
-│   ├── processing.py
+assets/ # Folder containing csv files to be processed
+database/ # SQLite database files
+reports/ # Folder for generated reports
+src/
+├── config/
+│   ├── __init__.py
+│   └── settings.py      
+├── core/
+│   ├── __init__.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── row_process_data.py
+│   │   └── validation_result.py
+│   └── services/
+│       ├── __init__.py
+│       ├── data_processor.py
+│       ├── validation/
+│       │   ├── __init__.py
+│       │   ├── base_validator.py
+│       │   ├── range_40_validator.py
+│       │   ├── range_30_validator.py
+│       │   ├── range_20_validator.py
+│       │   └── range_10_validator.py
+│       └── establishment_validator.py
+├── interfaces/
+│   ├── __init__.py
 │   ├── report_generator.py
-│   └── utils.py
-
-└── download.py
-└── hist_to_download.csv
+│   └── web_scraper.py
+├── repositories/
+│   ├── __init__.py
+│   └── establishment_repository.py
+├── utils/
+│   ├── __init__.py
+│   ├── date_parser.py
+│   └── cbo_checker.py
+└── main.py
 
 ```
 

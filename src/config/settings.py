@@ -1,14 +1,17 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Settings:
     def __init__(self):
         self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
         self.DATABASES = {
-            'valid_cnes_db_path': self.BASE_DIR + '\\databases' + '\\estab_202411_159_152.db',
-            'general_cnes_db_path': self.BASE_DIR + '\\databases' + '\\estabelecimentos_202411.db'
+            'valid_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('VALID_CNES_DB_FILENAME')),
+            'general_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('GENERAL_CNES_DB_FILENAME'))
         }
-        self.ASSETS_DIR = self.BASE_DIR + '\\assets'
-        self.REPORTS_DIR = self.BASE_DIR + '\\reports'
+        self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
+        self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
         self.CHROME_OPTIONS = [
             "--headless",
             "--no-sandbox",
