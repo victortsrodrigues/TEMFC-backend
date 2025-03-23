@@ -3,3 +3,4 @@ databases/criacao_db.py
 databases/rlEstabServClass202411.csv
 databases/rlEstabServClass202502.csv
 .env
+assets/
