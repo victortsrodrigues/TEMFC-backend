@@ -6,6 +6,10 @@ load_dotenv()
 class Settings:
     def __init__(self):
         self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
+        self.VALID_CNES_DB_FILENAME = os.getenv('VALID_CNES_DB_FILENAME')
+        self.GENERAL_CNES_DB_FILENAME = os.getenv('GENERAL_CNES_DB_FILENAME')
+        if not self.VALID_CNES_DB_FILENAME or not self.GENERAL_CNES_DB_FILENAME:
+            raise ValueError("Missing database filenames in .env file")
         self.DATABASES = {
             'valid_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('VALID_CNES_DB_FILENAME')),
             'general_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('GENERAL_CNES_DB_FILENAME'))

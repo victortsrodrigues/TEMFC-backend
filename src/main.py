@@ -31,9 +31,10 @@ class Application:
         except Exception as e:
             logging.error(f"Processing failed: {e}")
         finally:
+            if len(overall_result) == 0:
+                logging.error("No .csv files found.")
             self.report_generator.report_file(overall_result)
             logging.info(f"Execution time: {time.time() - start_time:.2f}s")
-
     
 if __name__ == "__main__":
     app = Application()
