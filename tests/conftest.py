@@ -118,3 +118,17 @@ def establishment_data_invalid_cbo():
         cbo_desc="ENFERMEIRO DA FAMILIA",
         comp_value="01/2023"
     )
+    
+
+@pytest.fixture
+def create_dinamic_mock_establishment_data():
+    def _factory(chs_amb: float, comp_value: str):
+        return RowProcessData(
+            cnes="12345",
+            ibge="123",
+            name="Test Unit",
+            chs_amb=chs_amb,
+            cbo_desc="MEDICO DA FAMILIA",
+            comp_value=comp_value
+        )
+    return _factory 
