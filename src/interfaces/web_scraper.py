@@ -46,15 +46,12 @@ class CNESScraper:
             rows = driver.find_elements(By.XPATH, "//table[@ng-table='tableParamsServicosEspecializados']//tbody//tr")
             for row in rows:
                 code = row.find_element(By.XPATH, ".//td[@data-title-text='Código']").text
-                if code == "159":
+                if code in ["159", "152"]:
                     return True
-                elif code == "152":
-                    return False
             return False
         except Exception as e:
             self.logger.warning(f"Service check failed: {e}")
             return False
-
     def _wait_for_element(self, driver, selector, by, timeout=5):
         try:
             WebDriverWait(driver, timeout).until(

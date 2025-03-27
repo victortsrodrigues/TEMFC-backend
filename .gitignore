@@ -3,4 +3,20 @@ databases/criacao_db.py
 databases/rlEstabServClass202411.csv
 databases/rlEstabServClass202502.csv
 .env
+
+# Folder with .csv files
 assets/
+
+# Python compilled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Coverage tests (pytest-cov)
+htmlcov/
+.coverage
+.coverage.*
+
+# Cache from pytest
+.pytest_cache/

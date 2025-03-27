@@ -30,12 +30,16 @@ class EstablishmentValidator:
         valid_cnes = []
         for entry in unique_entries:
             if entry.cnes not in valid_cnes:
-                cnes_validation = self.repo.check_establishment(entry.ibge + entry.cnes)
-                if cnes_validation is True:
-                    valid_cnes.append(entry.cnes)
-                elif cnes_validation is None:
-                    if self.scraper.validate_online(entry.cnes, entry.name):
+                try:
+                    cnes_validation = self.repo.check_establishment(entry.ibge + entry.cnes)
+                    if cnes_validation is True:
                         valid_cnes.append(entry.cnes)
+                    elif cnes_validation is None:
+                        if self.scraper.validate_online(entry.cnes, entry.name):
+                            valid_cnes.append(entry.cnes)
+                except Exception as e:
+                    self.logger.error(f"Failed to validate CNES {entry.cnes}: {e}")
+                    continue
         return valid_cnes
 
     def _create_entry(self, line) -> RowProcessData:
