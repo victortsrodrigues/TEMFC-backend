@@ -1,5 +1,6 @@
 import csv
 import logging
+from pathlib import Path
 from typing import Dict
 from core.models.validation_result import ProfessionalExperienceValidator
 from core.models.row_process_data import RowProcessData
@@ -23,12 +24,19 @@ class DataProcessor:
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
 
-    def process_csv(self, file_path: str, overall_result: Dict) -> float:
+    def process_csv(self, csv_input, overall_result: Dict) -> float:
         try:
             result = ProfessionalExperienceValidator()
-            result.file_path = file_path
+            result.file_path = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
 
-            with open(file_path, "r", encoding="utf-8") as file:
+            # Open the file if it's a path, or use the object directly
+            if isinstance(csv_input, (str, Path)):
+                file = open(csv_input, "r", encoding="utf-8")
+            else:
+                file = csv_input
+                file.seek(0)
+            
+            with file:
                 csv_reader = csv.DictReader(file, delimiter=";")
                 result.valid_cnes = self.establishment_validator.check_establishment(
                     csv_reader
@@ -39,17 +47,17 @@ class DataProcessor:
                     csv_reader = csv.DictReader(file, delimiter=";")
                     self._process_validator(validator, csv_reader, result)
 
-            self._finalize_processing(file_path, result, overall_result)
+            self._finalize_processing(csv_input, result, overall_result)
             return result.calculate_valid_months()
 
         except Exception as e:
-            self.logger.error(f"Error processing CSV {file_path}: {e}")
+            self.logger.error(f"Error processing CSV {csv_input}: {e}")
             return 0
 
     def _process_validator(self, validator, csv_reader: csv.DictReader, result: ProfessionalExperienceValidator) -> None:
         for row in csv_reader:
             try:
-                establishment = RowProcessData(
+                establishment_data = RowProcessData(
                     cnes=row["CNES"],
                     ibge=row["IBGE"],
                     name=row["ESTABELECIMENTO"],
@@ -59,9 +67,9 @@ class DataProcessor:
                 )
 
                 if self._is_valid_row(
-                    establishment, result.valid_cnes, validator.lower_bound
+                    establishment_data, result.valid_cnes, validator.lower_bound
                 ):
-                    validator.validate(establishment, result, row)
+                    validator.validate(establishment_data, result, row)
 
             except (ValueError, KeyError) as e:
                 self.logger.warning(f"Skipping invalid row: {e}")
@@ -88,24 +96,26 @@ class DataProcessor:
 
     def _finalize_processing(
         self,
-        file_path: str,
+        csv_input,
         result: ProfessionalExperienceValidator,
         overall_result: Dict,
     ) -> None:
         result.valid_rows.sort(
             key=lambda x: DateParser.parse(x["COMP."]), reverse=True
         )
-
-        with open(file_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=result.valid_rows[0].keys() if result.valid_rows else [],
-                delimiter=";",
-            )
-            writer.writeheader()
-            writer.writerows(result.valid_rows)
-
-        overall_result[file_path] = {
+        
+        if isinstance(csv_input, (str, Path)):
+            with open(csv_input, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=result.valid_rows[0].keys() if result.valid_rows else [],
+                    delimiter=";",
+                )
+                writer.writeheader()
+                writer.writerows(result.valid_rows)
+        
+        overall_result_key = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
+        overall_result[overall_result_key] = {
             "status": (
                 "Eligible"
                 if (valid := result.calculate_valid_months()) >= 48
