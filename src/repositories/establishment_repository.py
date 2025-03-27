@@ -10,14 +10,14 @@ class EstablishmentRepository:
         try:
             with sqlite3.connect(settings.get_database_path('valid_cnes_db_path')) as conn:
                 if conn.execute("SELECT 1 FROM serv159152 WHERE valor=?", (ibge_cnes,)).fetchone():
-                    return 1
+                    return True
                 
             with sqlite3.connect(settings.get_database_path('general_cnes_db_path')) as conn:
                 if conn.execute("SELECT 1 FROM tabela_dados WHERE CO_UNIDADE=?", (ibge_cnes,)).fetchone():
-                    return 0
+                    return False
                     
-            return -1
+            return None
         
         except sqlite3.Error as e:
             self.logger.error(f"Database error: {e}")
-            return -1
+            return None

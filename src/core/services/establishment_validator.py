@@ -30,10 +30,10 @@ class EstablishmentValidator:
         valid_cnes = []
         for entry in unique_entries:
             if entry.cnes not in valid_cnes:
-                status = self.repo.check_establishment(entry.ibge + entry.cnes)
-                if status == 1:
+                cnes_validation = self.repo.check_establishment(entry.ibge + entry.cnes)
+                if cnes_validation is True:
                     valid_cnes.append(entry.cnes)
-                elif status == -1:
+                elif cnes_validation is None:
                     if self.scraper.validate_online(entry.cnes, entry.name):
                         valid_cnes.append(entry.cnes)
         return valid_cnes

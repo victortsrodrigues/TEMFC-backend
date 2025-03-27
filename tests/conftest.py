@@ -4,10 +4,17 @@ from src.interfaces.web_scraper import CNESScraper
 from unittest.mock import Mock, patch
 
 @pytest.fixture
-def mock_establishment_repo_return_1():
+def mock_establishment_repo_return_true():
     """Create a mock establishment repository"""
     repo = Mock(spec=EstablishmentRepository)
-    repo.check_establishment.return_value = 1
+    repo.check_establishment.return_value = True
+    return repo
+
+@pytest.fixture
+def mock_establishment_repo_return_false():
+    """Create a mock establishment repository"""
+    repo = Mock(spec=EstablishmentRepository)
+    repo.check_establishment.return_value = False
     return repo
 
 @pytest.fixture
