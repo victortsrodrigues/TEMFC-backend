@@ -8,10 +8,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class Settings:
     def __init__(self):
+        self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
         self.reload()
     
     def reload(self):
-        self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
+        
         self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
         self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
         self.VALID_CNES_DB_FILENAME = os.getenv('VALID_CNES_DB_FILENAME')

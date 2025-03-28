@@ -1,7 +1,8 @@
 import csv
-from pathlib import Path
+import importlib
 import pytest
-from src.main import Application
+from pathlib import Path
+
 from src.config.settings import settings
 
 class TestMainApplicationIntegration:
@@ -53,11 +54,15 @@ class TestMainApplicationIntegration:
     def prepare_test_environment(self, tmp_path, monkeypatch, valid_csv_data, insufficient_csv_data):
         """Configura ambiente isolado para testes"""
 
-        # Patch do BASE_DIR antes de qualquer inicialização
+        # 1. Patch do BASE_DIR
         monkeypatch.setattr(settings, "BASE_DIR", str(tmp_path.absolute()))
         
-        # Recarrega as configurações com o novo BASE_DIR
-        settings.reload()  # ✅ Agora ASSETS_DIR será tmp_path/assets
+        # 2. Recarrega as configurações
+        settings.reload()
+        
+        # 3. Recarrega módulos da aplicação
+        importlib.reload(importlib.import_module("src.main"))
+        importlib.reload(importlib.import_module("src.config.settings"))
         
         # Cria estrutura de diretórios
         assets_dir = Path(settings.ASSETS_DIR)
@@ -83,11 +88,14 @@ class TestMainApplicationIntegration:
 
     def test_full_application_workflow(self, prepare_test_environment, caplog):
         """Testa execução completa da aplicação com dados válidos e inválidos"""
-                
+        from src.main import Application
         # Executa aplicação
         app = Application()
         app.run()
-                
+        
+        print(f"BASE_DIR usado: {settings.BASE_DIR}")
+        print(f"ASSETS_DIR usado: {settings.ASSETS_DIR}")
+        
         # Verifica logs
         self._assert_log_contents(caplog.text)
         
@@ -96,7 +104,7 @@ class TestMainApplicationIntegration:
 
     def _assert_log_contents(self, log_text: str):
         """Valida mensagens no log"""
-        assert "Usando diretório: {}".format(settings.ASSETS_DIR) in log_text
+        assert f"Usando diretório: {settings.ASSETS_DIR}" in log_text
         assert "Processing file: valid_medical_data.csv" in log_text
         assert "STATUS: NOT ELIGIBLE" in log_text
         assert "Processing file: insufficient_medical_data.csv" in log_text
