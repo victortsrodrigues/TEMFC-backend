@@ -97,13 +97,7 @@ class TestRange10Validator:
 
     
     def test_validate_promotion_to_40(self, create_dinamic_mock_establishment_data):
-        """
-        Test promotion of rows to 40 CHS range.
-
-        Verifies:
-        - Rows are promoted to 40 CHS range when they meet the criteria.
-        - Rows are not promoted if they do not meet the criteria.
-        """
+        """Test promotion of rows to 40 CHS range."""
         validator = self.validator
         result = self.result
 
@@ -124,8 +118,7 @@ class TestRange10Validator:
     
 
     def test_validate_promotion_to_30(self, create_dinamic_mock_establishment_data):
-        """
-        Test promotion of rows to 30 CHS range."""
+        """Test promotion of rows to 30 CHS range."""
         validator = self.validator
         result = self.result
         
