@@ -4,7 +4,7 @@ from src.core.services.establishment_validator import EstablishmentValidator
 from src.repositories.establishment_repository import EstablishmentRepository
 from src.interfaces.web_scraper import CNESScraper
 
-class TestDataProcessorIntegration:
+class TestDataProcessorCBOIntegration:
     @pytest.fixture
     def data_processor(self):
         """Create an actual data processor with real dependencies"""
