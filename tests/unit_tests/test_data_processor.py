@@ -140,3 +140,10 @@ def test_process_validator_handles_invalid_rows(data_processor):
     )
 
 
+def test_validate_columns(data_processor):
+    # generate a csv with missing columns and test if it raises an error
+    fieldnames_valid = ["CNES", "IBGE", "ESTABELECIMENTO", "CHS AMB.", "DESCRICAO CBO", "COMP."]
+    fieldnames_invalid = ["CNES", "IBGE", "ESTABELECIMENTO", "CHS AMB.", "DESCRICAO CBO"]
+    
+    assert data_processor._validate_columns(fieldnames_valid) == True
+    assert data_processor._validate_columns(fieldnames_invalid) == False

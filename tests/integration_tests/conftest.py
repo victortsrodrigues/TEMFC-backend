@@ -79,3 +79,49 @@ def csv_factory_establishment(tmp_path):
     return _create_csv
 
 
+@pytest.fixture
+def valid_csv_data():
+    return [
+        {
+            "CNES": "2337545",
+            "IBGE": "317130",
+            "ESTABELECIMENTO": "UNIDADE BASICA DE SAUDE",
+            "CHS AMB.": "40",
+            "DESCRICAO CBO": "MEDICO DA FAMILIA",
+            "COMP.": "01/2023"
+        },
+        {
+            "CNES": "2337545",
+            "IBGE": "317130",
+            "ESTABELECIMENTO": "UNIDADE BASICA DE SAUDE",
+            "CHS AMB.": "40",
+            "DESCRICAO CBO": "MEDICO DA FAMILIA",
+            "COMP.": "02/2023"
+        }
+    ]
+
+@pytest.fixture
+def invalid_csv_data():
+    return [
+        {
+            "CNES": "9999999",
+            "IBGE": "999999",
+            "ESTABELECIMENTO": "SMALL CLINIC",
+            "CHS AMB.": "10",
+            "DESCRICAO CBO": "MEDICO DA FAMILIA",
+            "COMP.": "01/2023"
+        }
+    ]
+    
+    
+@pytest.fixture
+def missing_csv_data():
+    return [
+        {
+            "CNES": "9999999",
+            "IBGE": "999999",
+            "ESTABELECIMENTO": "SMALL CLINIC",
+            "CHS AMB.": "10",
+            "DESCRICAO CBO": "MEDICO DA FAMILIA"
+        }
+    ]

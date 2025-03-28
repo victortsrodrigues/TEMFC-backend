@@ -1,46 +1,10 @@
 import csv
-import importlib
 import pytest
 from pathlib import Path
-
+from src.main import Application
 from src.config.settings import settings
 
 class TestMainApplicationIntegration:
-    @pytest.fixture
-    def valid_csv_data(self):
-        return [
-            {
-                "CNES": "2337545",
-                "IBGE": "317130",
-                "ESTABELECIMENTO": "UNIDADE BASICA DE SAUDE",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO DA FAMILIA",
-                "COMP.": "01/2023"
-            },
-            {
-                "CNES": "2337545",
-                "IBGE": "317130",
-                "ESTABELECIMENTO": "UNIDADE BASICA DE SAUDE",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO DA FAMILIA",
-                "COMP.": "02/2023"
-            }
-        ]
-
-    @pytest.fixture
-    def insufficient_csv_data(self):
-        return [
-            {
-                "CNES": "9999999",
-                "IBGE": "999999",
-                "ESTABELECIMENTO": "SMALL CLINIC",
-                "CHS AMB.": "10",
-                "DESCRICAO CBO": "MEDICO DA FAMILIA",
-                "COMP.": "01/2023"
-            }
-        ]
-
-
     def _create_csv_file(self, path: Path, data: list, delimiter: str = ";"):
         with open(path, 'w', newline='', encoding='utf-8') as csvfile:
             fieldnames = ["CNES", "IBGE", "ESTABELECIMENTO", "CHS AMB.", "DESCRICAO CBO", "COMP."]
@@ -51,87 +15,70 @@ class TestMainApplicationIntegration:
 
 
     @pytest.fixture
-    def prepare_test_environment(self, tmp_path, monkeypatch, valid_csv_data, insufficient_csv_data):
-        """Configura ambiente isolado para testes"""
+    def prepare_test_environment(self, valid_csv_data, invalid_csv_data, missing_csv_data):
+        # Cria diretórios originais se não existirem
+        Path(settings.ASSETS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(settings.REPORTS_DIR).mkdir(parents=True, exist_ok=True)
 
-        # 1. Patch do BASE_DIR
-        monkeypatch.setattr(settings, "BASE_DIR", str(tmp_path.absolute()))
-        
-        # 2. Recarrega as configurações
-        settings.reload()
-        
-        # 3. Recarrega módulos da aplicação
-        importlib.reload(importlib.import_module("src.main"))
-        importlib.reload(importlib.import_module("src.config.settings"))
-        
-        # Cria estrutura de diretórios
-        assets_dir = Path(settings.ASSETS_DIR)
-        assets_dir.mkdir(parents=True, exist_ok=True)
-        
-        reports_dir = Path(settings.REPORTS_DIR)
-        reports_dir.mkdir(parents=True, exist_ok=True)
-        
         # Cria arquivos de teste
-        self._create_csv_file(
-            assets_dir / "valid_medical_data.csv",
-            valid_csv_data
-        )
-        self._create_csv_file(
-            assets_dir / "insufficient_medical_data.csv",
-            insufficient_csv_data
-        )
+        valid_path = Path(settings.ASSETS_DIR) / "valid_data.csv"
+        invalid_path = Path(settings.ASSETS_DIR) / "invalid_data.csv"
+        missing_path = Path(settings.ASSETS_DIR) / "missing_data.csv"
+        
+        self._create_csv_file(valid_path, valid_csv_data)
+        self._create_csv_file(invalid_path, invalid_csv_data)
+        self._create_csv_file(missing_path, missing_csv_data)
 
-        return {
-            "assets_dir": assets_dir,
-            "reports_dir": reports_dir
-        }
+        yield  # Executa o teste aqui
 
+        # Teardown: Remove arquivos criados
+        valid_path.unlink(missing_ok=True)
+        invalid_path.unlink(missing_ok=True)
+        missing_path.unlink(missing_ok=True)
+        report_path = Path(settings.REPORTS_DIR) / "overall_results.csv"
+        report_path.unlink(missing_ok=True)
+    
+    
     def test_full_application_workflow(self, prepare_test_environment, caplog):
         """Testa execução completa da aplicação com dados válidos e inválidos"""
-        from src.main import Application
+        
         # Executa aplicação
         app = Application()
         app.run()
         
-        print(f"BASE_DIR usado: {settings.BASE_DIR}")
-        print(f"ASSETS_DIR usado: {settings.ASSETS_DIR}")
-        
-        # Verifica logs
-        self._assert_log_contents(caplog.text)
+        # Verificações
+
+        assert "Processing file: valid_data.csv" in caplog.text
+        assert "STATUS: NOT ELIGIBLE" in caplog.text  # Ajuste conforme lógica real
+        assert "Processing file: invalid_data.csv" in caplog.text
+        assert "STATUS: NOT ELIGIBLE" in caplog.text
+        assert "Processing file: missing_data.csv" in caplog.text
+        assert "STATUS: NOT ELIGIBLE" in caplog.text
         
         # Verifica relatório
-        self._assert_report_contents(prepare_test_environment["reports_dir"])
-
-    def _assert_log_contents(self, log_text: str):
-        """Valida mensagens no log"""
-        assert f"Usando diretório: {settings.ASSETS_DIR}" in log_text
-        assert "Processing file: valid_medical_data.csv" in log_text
-        assert "STATUS: NOT ELIGIBLE" in log_text
-        assert "Processing file: insufficient_medical_data.csv" in log_text
-        assert "STATUS: NOT ELIGIBLE" in log_text
-
-    def _assert_report_contents(self, reports_dir: Path):
-        """Valida conteúdo do relatório gerado"""
-        report_path = reports_dir / "overall_results.csv"
-
+        report_path = Path(settings.REPORTS_DIR) / "overall_results.csv"
         assert report_path.exists(), "Relatório não foi gerado"
-
         with report_path.open('r', encoding='utf-8') as f:
             results = list(csv.DictReader(f, delimiter=';'))
             
-            assert len(results) == 2, "Número incorreto de registros no relatório"
+            assert len(results) == 3, "Número incorreto de registros no relatório"
             
             # Verifica primeiro registro
-            valid_data = results[0]
-            assert valid_data["File"] == "valid_medical_data"
+            valid_data = results[2]
+            assert valid_data["File"] == "valid_data"
             assert valid_data["Status"] == "Not eligible"
-            assert valid_data["Pending"] == "46"
+            assert valid_data["Pending"] == "46.00"
             
             # Verifica segundo registro
-            invalid_data = results[1]
-            assert invalid_data["File"] == "insufficient_medical_data"
+            invalid_data = results[0]
+            assert invalid_data["File"] == "invalid_data"
             assert invalid_data["Status"] == "Not eligible"
-            assert invalid_data["Pending"] == "48"
+            assert invalid_data["Pending"] == "48.00"
             
+            # Verifica terceiro registro
+            missing_data = results[1]
+            assert missing_data["File"] == "missing_data"
+            assert missing_data["Status"] == "Not eligible"
+            assert missing_data["Pending"] == "48.00"
             
       

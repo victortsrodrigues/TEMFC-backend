@@ -19,7 +19,10 @@ class DataProcessor:
         Range20Validator(),
         Range10Validator(),
     ]
-
+    
+    REQUIRED_COLUMNS = {"CNES", "IBGE", "ESTABELECIMENTO", 
+                       "CHS AMB.", "DESCRICAO CBO", "COMP."}
+    
     def __init__(self, establishment_validator):
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
@@ -38,6 +41,11 @@ class DataProcessor:
             
             with file:
                 csv_reader = csv.DictReader(file, delimiter=";")
+                
+                # Validate columns before processing
+                if not self._validate_columns(csv_reader.fieldnames):
+                    return 0
+                
                 result.valid_cnes = self.establishment_validator.check_establishment(
                     csv_reader
                 )
@@ -54,6 +62,16 @@ class DataProcessor:
             self.logger.error(f"Error processing CSV {csv_input}: {e}")
             return 0
 
+    
+    def _validate_columns(self, fieldnames) -> bool:
+        """Validate CSV contains all required columns"""
+        if not self.REQUIRED_COLUMNS.issubset(fieldnames):
+            missing = self.REQUIRED_COLUMNS - set(fieldnames)
+            self.logger.error(f"CSV file missing required columns: {missing}. ")
+            return False
+        return True
+    
+    
     def _process_validator(self, validator, csv_reader: csv.DictReader, result: ProfessionalExperienceValidator) -> None:
         for row in csv_reader:
             try:
