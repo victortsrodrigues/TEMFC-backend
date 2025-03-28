@@ -8,7 +8,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class Settings:
     def __init__(self):
+        self.reload()
+    
+    def reload(self):
         self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
+        self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
+        self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
         self.VALID_CNES_DB_FILENAME = os.getenv('VALID_CNES_DB_FILENAME')
         self.GENERAL_CNES_DB_FILENAME = os.getenv('GENERAL_CNES_DB_FILENAME')
         if not self.VALID_CNES_DB_FILENAME or not self.GENERAL_CNES_DB_FILENAME:
@@ -17,8 +22,6 @@ class Settings:
             'valid_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('VALID_CNES_DB_FILENAME')),
             'general_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('GENERAL_CNES_DB_FILENAME'))
         }
-        self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
-        self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
         self.CHROME_OPTIONS = [
             "--headless",
             "--no-sandbox",

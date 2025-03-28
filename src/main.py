@@ -20,10 +20,13 @@ class Application:
         
         start_time = time.time()
         
+        current_assets_dir = settings.ASSETS_DIR
+        logging.info(f"Usando diretório: {current_assets_dir}")
+        
         overall_result = {}
 
         try:
-            with os.scandir(settings.ASSETS_DIR) as entries:
+            with os.scandir(current_assets_dir) as entries:
                 for entry in entries:
                     if entry.name.endswith('.csv'):
                         valid_months = self.data_processor.process_csv(entry.path, overall_result)
