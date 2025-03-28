@@ -17,7 +17,7 @@ class Application:
         self.data_processor = DataProcessor(self.establishment_validator)
 
     def run(self):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        
         start_time = time.time()
         
         overall_result = {}
