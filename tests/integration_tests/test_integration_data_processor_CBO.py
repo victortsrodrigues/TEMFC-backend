@@ -14,10 +14,10 @@ class TestDataProcessorCBOIntegration:
         return DataProcessor(establishment_validator)
       
       
-    def test_process_csv_valid_family(self, data_processor, csv_factory):
+    def test_process_csv_valid_family(self, data_processor, csv_factory_chs_cbo):
         """Integration test to verify CSV processing with valid medical professional data"""
         # Create a sample CSV file with realistic medical professional data
-        test_csv_path = csv_factory() 
+        test_csv_path = csv_factory_chs_cbo() 
         
         # Process the CSV
         overall_result = {}
@@ -30,7 +30,7 @@ class TestDataProcessorCBOIntegration:
         assert overall_result[str(test_csv_path)]['pending'] == 46
         
     
-    def test_process_csv_invalid_cbo(self, data_processor, csv_factory):
+    def test_process_csv_invalid_cbo(self, data_processor, csv_factory_chs_cbo):
         custom_data = [
             {
                 "CNES": "6990193",
@@ -42,7 +42,7 @@ class TestDataProcessorCBOIntegration:
             }
         ]
         
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
         
         # Process the CSV
         overall_result = {}
@@ -55,7 +55,7 @@ class TestDataProcessorCBOIntegration:
         assert overall_result[str(test_csv_path)]['pending'] == 46
         
         
-    def test_process_csv_valid_clinical(self, data_processor, csv_factory):
+    def test_process_csv_valid_clinical(self, data_processor, csv_factory_chs_cbo):
         custom_data = [
             {
                 "CNES": "6990193",
@@ -67,7 +67,7 @@ class TestDataProcessorCBOIntegration:
             }
         ]
         
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
         
         # Process the CSV
         overall_result = {}
@@ -80,7 +80,7 @@ class TestDataProcessorCBOIntegration:
         assert overall_result[str(test_csv_path)]['pending'] == 45
         
         
-    def test_process_csv_valid_clinicals(self, data_processor, csv_factory):
+    def test_process_csv_valid_clinicals(self, data_processor, csv_factory_chs_cbo):
         custom_data = [
             {
                 "CNES": "6990193",
@@ -92,7 +92,7 @@ class TestDataProcessorCBOIntegration:
             }
         ]
         
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
         
         # Process the CSV
         overall_result = {}
@@ -105,7 +105,7 @@ class TestDataProcessorCBOIntegration:
         assert overall_result[str(test_csv_path)]['pending'] == 45
         
         
-    def test_process_csv_valid_generalist(self, data_processor, csv_factory):
+    def test_process_csv_valid_generalist(self, data_processor, csv_factory_chs_cbo):
         custom_data = [
             {
                 "CNES": "6990193",
@@ -117,7 +117,7 @@ class TestDataProcessorCBOIntegration:
             }
         ]
         
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
         
         # Process the CSV
         overall_result = {}

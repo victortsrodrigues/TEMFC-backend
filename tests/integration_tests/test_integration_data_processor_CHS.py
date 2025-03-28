@@ -15,7 +15,7 @@ class TestDataProcessorCHSIntegration:
         establishment_validator = EstablishmentValidator(repo, scraper)
         return DataProcessor(establishment_validator)
 
-    def test_process_csv_invalid_chs(self, data_processor, csv_factory):
+    def test_process_csv_invalid_chs(self, data_processor, csv_factory_chs_cbo):
         """Should not be valid. Should be 2 valid months"""
         custom_data = [
             {
@@ -28,7 +28,7 @@ class TestDataProcessorCHSIntegration:
             }
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -40,7 +40,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 46)
 
-    def test_process_csv_overlap_40(self, data_processor, csv_factory):
+    def test_process_csv_overlap_40(self, data_processor, csv_factory_chs_cbo):
         """Simulate overlap of months with at least one month with CHS > 40. Should be valid only one occurrency of 40"""
         custom_data = [
             {
@@ -77,7 +77,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -89,7 +89,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert overall_result[str(test_csv_path)]["pending"] == 46
 
-    def test_process_csv_chs_30(self, data_processor, csv_factory):
+    def test_process_csv_chs_30(self, data_processor, csv_factory_chs_cbo):
         """Simulate CHS = 30. Should be 2.75 valid months"""
         custom_data = [
             {
@@ -102,7 +102,7 @@ class TestDataProcessorCHSIntegration:
             }
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -114,7 +114,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45.25)
 
-    def test_process_csv_overlap_chs_30(self, data_processor, csv_factory):
+    def test_process_csv_overlap_chs_30(self, data_processor, csv_factory_chs_cbo):
         """Simulate CHS = 30. Should promote to 40 and be valid 3 months"""
         custom_data = [
             {
@@ -135,7 +135,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -147,7 +147,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45)
 
-    def test_process_csv_overlap_chs_30_and_20(self, data_processor, csv_factory):
+    def test_process_csv_overlap_chs_30_and_20(self, data_processor, csv_factory_chs_cbo):
         """Should promote to 40 and be valid 3 months"""
         custom_data = [
             {
@@ -168,7 +168,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -180,7 +180,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45)
 
-    def test_process_csv_overlap_chs_30_and_10(self, data_processor, csv_factory):
+    def test_process_csv_overlap_chs_30_and_10(self, data_processor, csv_factory_chs_cbo):
         """Should promote to 40 and be valid 3 months"""
         custom_data = [
             {
@@ -201,7 +201,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -213,7 +213,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45)
 
-    def test_process_csv_chs_20(self, data_processor, csv_factory):
+    def test_process_csv_chs_20(self, data_processor, csv_factory_chs_cbo):
         """Simulate CHS = 20"""
         custom_data = [
             {
@@ -226,7 +226,7 @@ class TestDataProcessorCHSIntegration:
             }
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -238,7 +238,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45.5)
 
-    def test_process_csv_overlap_chs_20(self, data_processor, csv_factory):
+    def test_process_csv_overlap_chs_20(self, data_processor, csv_factory_chs_cbo):
         """should promote to 40 and be valid 3 months"""
         custom_data = [
             {
@@ -267,7 +267,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -279,7 +279,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45)
 
-    def test_process_csv_overlap_chs_20_and_10(self, data_processor, csv_factory):
+    def test_process_csv_overlap_chs_20_and_10(self, data_processor, csv_factory_chs_cbo):
         """should promote to 30 and be valid 2.75 months"""
         custom_data = [
             {
@@ -300,7 +300,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -312,7 +312,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45.25)
 
-    def test_process_csv_chs_10(self, data_processor, csv_factory):
+    def test_process_csv_chs_10(self, data_processor, csv_factory_chs_cbo):
         """Simulate CHS = 10. Shouldn't count. Should be valid 2 months"""
         custom_data = [
             {
@@ -325,7 +325,7 @@ class TestDataProcessorCHSIntegration:
             }
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -337,7 +337,7 @@ class TestDataProcessorCHSIntegration:
         assert overall_result[str(test_csv_path)]["status"] == "Not eligible"
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 46)
 
-    def test_process_csv_double_overlap_chs_10(self, data_processor, csv_factory):
+    def test_process_csv_double_overlap_chs_10(self, data_processor, csv_factory_chs_cbo):
         """Should promote to 20 and be valid 2.5 months"""
         custom_data = [
             {
@@ -358,7 +358,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -371,7 +371,7 @@ class TestDataProcessorCHSIntegration:
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45.5)
 
 
-    def test_process_csv_triple_overlap_chs_10(self, data_processor, csv_factory):
+    def test_process_csv_triple_overlap_chs_10(self, data_processor, csv_factory_chs_cbo):
         """Should promote to 30 and be valid 2.75 months"""
         custom_data = [
             {
@@ -400,7 +400,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
@@ -413,7 +413,7 @@ class TestDataProcessorCHSIntegration:
         assert math.isclose(overall_result[str(test_csv_path)]["pending"], 45.25)
 
 
-    def test_process_csv_quadra_overlap_chs_10(self, data_processor, csv_factory):
+    def test_process_csv_quadra_overlap_chs_10(self, data_processor, csv_factory_chs_cbo):
         """Should promote to 40 and be valid 3 months"""
         custom_data = [
             {
@@ -450,7 +450,7 @@ class TestDataProcessorCHSIntegration:
             },
         ]
 
-        test_csv_path = csv_factory(data=custom_data)
+        test_csv_path = csv_factory_chs_cbo(data=custom_data)
 
         # Process the CSV
         overall_result = {}
