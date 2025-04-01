@@ -14,6 +14,8 @@ class CNESScraper:
             self.options.add_argument(option)
 
     def validate_online(self, cnes, establishment_name):
+        import chromedriver_autoinstaller
+        chromedriver_autoinstaller.install()
         driver = webdriver.Chrome(options=self.options)
         try:
             if not self._search_by_cnes(driver, cnes):
