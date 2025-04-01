@@ -1,6 +1,8 @@
 import sqlite3
 import logging
 from config.settings import settings
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 class EstablishmentRepository:
     def __init__(self):
@@ -8,16 +10,24 @@ class EstablishmentRepository:
 
     def check_establishment(self, ibge_cnes):
         try:
-            with sqlite3.connect(settings.get_database_path('valid_cnes_db_path')) as conn:
-                if conn.execute("SELECT 1 FROM serv159152 WHERE valor=?", (ibge_cnes,)).fetchone():
+            # Check serv159152 table (equivalent to valid CNES)
+            with settings.engine.connect() as conn:
+                result = conn.execute(
+                    text('SELECT COUNT(*) FROM serv159152 WHERE "CO_UNIDADE" = :val'),
+                    {"val": ibge_cnes}
+                ).fetchone()
+                print(result[0])
+                if result[0] > 0:
                     return True
                 
-            with sqlite3.connect(settings.get_database_path('general_cnes_db_path')) as conn:
-                if conn.execute("SELECT 1 FROM tabela_dados WHERE CO_UNIDADE=?", (ibge_cnes,)).fetchone():
-                    return False
-                    
-            return None
+                # Check all_estab_serv_class table (equivalent to general CNES)
+                result = conn.execute(
+                    text('SELECT COUNT(*) FROM all_estab_serv_class WHERE "CO_UNIDADE" = :val'),
+                    {"val": ibge_cnes}
+                ).fetchone()
+
+                return False if result[0] > 0 else None
         
-        except sqlite3.Error as e:
-            self.logger.error(f"Database error: {e}")
+        except SQLAlchemyError as e:
+            self.logger.error(f"Database error: {str(e)}")
             return None

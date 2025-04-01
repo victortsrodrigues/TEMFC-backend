@@ -1,6 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 load_dotenv()
 
@@ -12,6 +13,20 @@ class Settings:
         self.reload()
     
     def reload(self):
+        
+        # PostgreSQL configuration
+        self.DB_CONFIG = {
+            "host": os.getenv("DB_HOST", "localhost"),
+            "port": os.getenv("DB_PORT", "5432"),
+            "database": os.getenv("DB_NAME", "establishment_db_202502"),
+            "user": os.getenv("DB_USER", "postgres"),
+            "password": os.getenv("DB_PASSWORD", "postgres")
+        }
+        # SQLAlchemy engine
+        self.engine = create_engine(
+            f"postgresql://{self.DB_CONFIG['user']}:{self.DB_CONFIG['password']}"
+            f"@{self.DB_CONFIG['host']}:{self.DB_CONFIG['port']}/{self.DB_CONFIG['database']}"
+        )
         
         self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
         self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
