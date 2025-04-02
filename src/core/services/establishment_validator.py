@@ -2,6 +2,7 @@ from repositories.establishment_repository import EstablishmentRepository
 from utils.cbo_checker import CBOChecker
 from interfaces.web_scraper import CNESScraper
 from core.models.row_process_data import RowProcessData
+from utils.date_parser import DateParser
 import logging
 
 class EstablishmentValidator:
@@ -46,13 +47,16 @@ class EstablishmentValidator:
         cnes = line["CNES"]
         while len(cnes) < 7:
             cnes = "0" + cnes
+        
+        comp_value = DateParser.format_yyyymm_to_mm_yyyy(line["COMP."])
+        
         return RowProcessData(
             cnes=cnes,
             ibge=line["IBGE"],
             name=line["ESTABELECIMENTO"],
             chs_amb=float(line["CHS AMB."]),
             cbo_desc=line["DESCRICAO CBO"],
-            comp_value=line["COMP."]
+            comp_value=comp_value
         )
 
     def _should_validate(self, entry, unique_entries):

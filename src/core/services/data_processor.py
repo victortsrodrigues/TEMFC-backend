@@ -1,5 +1,6 @@
 import csv
 import logging
+import io
 from pathlib import Path
 from typing import Dict
 from core.models.validation_result import ProfessionalExperienceValidator
@@ -34,7 +35,11 @@ class DataProcessor:
 
             # Open the file if it's a path, or use the object directly
             if isinstance(csv_input, (str, Path)):
-                file = open(csv_input, "r", encoding="utf-8")
+                path = Path(csv_input)
+                if path.is_file():
+                    file = open(path, "r", encoding="utf-8")
+                else:
+                    file = io.StringIO(csv_input)  # Treat as in-memory CSV string
             else:
                 file = csv_input
                 file.seek(0)
@@ -75,13 +80,16 @@ class DataProcessor:
     def _process_validator(self, validator, csv_reader: csv.DictReader, result: ProfessionalExperienceValidator) -> None:
         for row in csv_reader:
             try:
+                
+                comp_value = DateParser.format_yyyymm_to_mm_yyyy(row["COMP."])
+                
                 establishment_data = RowProcessData(
                     cnes=row["CNES"],
                     ibge=row["IBGE"],
                     name=row["ESTABELECIMENTO"],
                     chs_amb=float(row["CHS AMB."]),
                     cbo_desc=row["DESCRICAO CBO"],
-                    comp_value=row["COMP."],
+                    comp_value=comp_value,
                 )
 
                 if self._is_valid_row(
@@ -119,18 +127,20 @@ class DataProcessor:
         overall_result: Dict,
     ) -> None:
         result.valid_rows.sort(
-            key=lambda x: DateParser.parse(x["COMP."]), reverse=True
+            key=lambda x: DateParser.format_yyyymm_to_mm_yyyy(x["COMP."]), reverse=True
         )
         
         if isinstance(csv_input, (str, Path)):
-            with open(csv_input, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=result.valid_rows[0].keys() if result.valid_rows else [],
-                    delimiter=";",
-                )
-                writer.writeheader()
-                writer.writerows(result.valid_rows)
+            path = Path(csv_input)
+            if path.is_file():
+                with open(csv_input, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(
+                        f,
+                        fieldnames=result.valid_rows[0].keys() if result.valid_rows else [],
+                        delimiter=";",
+                    )
+                    writer.writeheader()
+                    writer.writerows(result.valid_rows)
         
         overall_result_key = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
         overall_result[overall_result_key] = {
