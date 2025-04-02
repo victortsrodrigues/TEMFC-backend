@@ -28,16 +28,11 @@ class Settings:
             f"@{self.DB_CONFIG['host']}:{self.DB_CONFIG['port']}/{self.DB_CONFIG['database']}?sslmode=require"
         )
         
+        # Directories
         self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
         self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
-        self.VALID_CNES_DB_FILENAME = os.getenv('VALID_CNES_DB_FILENAME')
-        self.GENERAL_CNES_DB_FILENAME = os.getenv('GENERAL_CNES_DB_FILENAME')
-        if not self.VALID_CNES_DB_FILENAME or not self.GENERAL_CNES_DB_FILENAME:
-            raise ValueError("Missing database filenames in .env file")
-        self.DATABASES = {
-            'valid_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('VALID_CNES_DB_FILENAME')),
-            'general_cnes_db_path': os.path.join(self.BASE_DIR, 'databases', os.getenv('GENERAL_CNES_DB_FILENAME'))
-        }
+        
+        # Chrome options
         self.CHROME_OPTIONS = [
             "--headless",
             "--no-sandbox",
