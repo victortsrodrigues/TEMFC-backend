@@ -16,16 +16,16 @@ class Settings:
         
         # PostgreSQL configuration
         self.DB_CONFIG = {
-            "host": os.getenv("DB_HOST", "localhost"),
-            "port": os.getenv("DB_PORT", "5432"),
-            "database": os.getenv("DB_NAME", "establishment_db_202502"),
-            "user": os.getenv("DB_USER", "postgres"),
-            "password": os.getenv("DB_PASSWORD", "postgres")
+            "host": os.getenv("DB_HOST"),
+            "port": os.getenv("DB_PORT"),
+            "database": os.getenv("DB_NAME"),
+            "user": os.getenv("DB_USER"),
+            "password": os.getenv("DB_PASSWORD")
         }
         # SQLAlchemy engine
         self.engine = create_engine(
             f"postgresql://{self.DB_CONFIG['user']}:{self.DB_CONFIG['password']}"
-            f"@{self.DB_CONFIG['host']}:{self.DB_CONFIG['port']}/{self.DB_CONFIG['database']}"
+            f"@{self.DB_CONFIG['host']}:{self.DB_CONFIG['port']}/{self.DB_CONFIG['database']}?sslmode=require"
         )
         
         self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
