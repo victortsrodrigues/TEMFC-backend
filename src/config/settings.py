@@ -38,9 +38,5 @@ class Settings:
             "--no-sandbox",
             "--disable-dev-shm-usage"
         ]
-
-    def get_database_path(self, key: str) -> str:
-        """Get database path as string for SQLite compatibility"""
-        return str(self.DATABASES[key])
     
 settings = Settings()
