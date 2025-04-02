@@ -16,7 +16,6 @@ class EstablishmentRepository:
                     text('SELECT COUNT(*) FROM serv159152 WHERE "CO_UNIDADE" = :val'),
                     {"val": ibge_cnes}
                 ).fetchone()
-                print(result[0])
                 if result[0] > 0:
                     return True
                 
