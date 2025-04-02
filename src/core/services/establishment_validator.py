@@ -43,8 +43,11 @@ class EstablishmentValidator:
         return valid_cnes
 
     def _create_entry(self, line) -> RowProcessData:
+        cnes = line["CNES"]
+        while len(cnes) < 7:
+            cnes = "0" + cnes
         return RowProcessData(
-            cnes=line["CNES"],
+            cnes=cnes,
             ibge=line["IBGE"],
             name=line["ESTABELECIMENTO"],
             chs_amb=float(line["CHS AMB."]),
