@@ -28,7 +28,7 @@ class DataProcessor:
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
 
-    def process_csv(self, csv_input, overall_result: Dict) -> float:
+    def process_csv(self, csv_input, overall_result: Dict, body: Dict) -> float:
         try:
             result = ProfessionalExperienceValidator()
             result.file_path = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
@@ -60,7 +60,7 @@ class DataProcessor:
                     csv_reader = csv.DictReader(file, delimiter=";")
                     self._process_validator(validator, csv_reader, result)
 
-            self._finalize_processing(csv_input, result, overall_result)
+            self._finalize_processing(csv_input, result, overall_result, body)
             return result.calculate_valid_months()
 
         except Exception as e:
@@ -125,6 +125,7 @@ class DataProcessor:
         csv_input,
         result: ProfessionalExperienceValidator,
         overall_result: Dict,
+        body: Dict,
     ) -> None:
         result.valid_rows.sort(
             key=lambda x: DateParser.format_yyyymm_to_mm_yyyy(x["COMP."]), reverse=True
@@ -142,8 +143,7 @@ class DataProcessor:
                     writer.writeheader()
                     writer.writerows(result.valid_rows)
         
-        overall_result_key = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
-        overall_result[overall_result_key] = {
+        overall_result[body["name"]] = {
             "status": (
                 "Eligible"
                 if (valid := result.calculate_valid_months()) >= 48

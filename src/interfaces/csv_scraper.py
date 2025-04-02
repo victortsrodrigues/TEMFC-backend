@@ -28,12 +28,12 @@ class CSVScraper:
             body["cpf"] = cpf
         name = body.get("name")
         if name:
-            name = name.strip()
+            name = name.strip().upper()
             body["name"] = name
         
         try:
             if not self._search_by_cpf(driver, cpf):
-                return self._search_by_name(driver, name)
+                self._search_by_name(driver, name)
             return self._intercept_data(driver)
         except Exception as e:
             self.logger.error(f"Web scraping failed: {e}")
@@ -44,13 +44,15 @@ class CSVScraper:
     def _search_by_cpf(self, driver, cpf):
         driver.get(f"https://cnes.datasus.gov.br/pages/profissionais/consulta.jsp?search={cpf}")
         del driver.requests
-        return self._wait_for_element(driver, 'table[ng-table="tableParams"]', By.CSS_SELECTOR)
+        return self._wait_for_element(driver, "button.btn.btn-default[ng-click*='historicoProfissional']", By.CSS_SELECTOR)
 
     def _search_by_name(self, driver, name):
-        encoded_name = quote_plus(name)
+        print(name)
+        encoded_name = name.replace(" ", "%20")
+        print(encoded_name)
         driver.get(f"https://cnes.datasus.gov.br/pages/profissionais/consulta.jsp?search={encoded_name}")
         del driver.requests
-        return self._wait_for_element(driver, 'table[ng-table="tableParams"]', By.CSS_SELECTOR)
+        return self._wait_for_element(driver, "button.btn.btn-default[ng-click*='historicoProfissional']", By.CSS_SELECTOR)
 
     def _intercept_data(self, driver):
         try:

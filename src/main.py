@@ -24,23 +24,20 @@ class Application:
         overall_result = {}
 
         body = {
-            "cpf": "05713248356",
-            "name": "LETICIA LIMA LUZ"
+            "cpf": "08060455417",
+            "name": "PEDRO RODA DA SILVA NETO"
         }
-        sample_csv = self.csv_scraper.get_csv_data(body)
         
         try:
-            with os.scandir(settings.ASSETS_DIR) as entries:
-                for entry in entries:
-                    if entry.name.endswith('.csv'):
-                        valid_months = self.data_processor.process_csv(sample_csv, overall_result)
-                        self.report_generator.report_terminal(entry.path, valid_months)
+            csv_input = self.csv_scraper.get_csv_data(body)
+            valid_months = self.data_processor.process_csv(csv_input, overall_result, body)
+            self.report_generator.report_terminal(body, valid_months)
         except Exception as e:
             logging.error(f"Processing failed: {e}")
         finally:
             if len(overall_result) == 0:
-                logging.error("No .csv files found.")
-            self.report_generator.report_file(overall_result)
+                logging.error("No data found.")
+            # self.report_generator.report_file(overall_result)
             logging.info(f"Execution time: {time.time() - start_time:.2f}s")
     
 if __name__ == "__main__":
