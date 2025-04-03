@@ -70,11 +70,15 @@ class DataProcessor:
     
     def _validate_columns(self, fieldnames) -> bool:
         """Validate CSV contains all required columns"""
-        if not self.REQUIRED_COLUMNS.issubset(fieldnames):
-            missing = self.REQUIRED_COLUMNS - set(fieldnames)
-            self.logger.error(f"CSV file missing required columns: {missing}. ")
+        try:
+            if not self.REQUIRED_COLUMNS.issubset(fieldnames):
+                missing = self.REQUIRED_COLUMNS - set(fieldnames)
+                self.logger.error(f"CSV file missing required columns: {missing}. ")
+                return False
+            return True
+        except TypeError as e:
+            self.logger.error(f"Invalid CSV structure: {e}")
             return False
-        return True
     
     
     def _process_validator(self, validator, csv_reader: csv.DictReader, result: ProfessionalExperienceValidator) -> None:

@@ -5,6 +5,7 @@ from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from core.services.data_processor import DataProcessor
 from core.services.establishment_validator import EstablishmentValidator
+from core.services.core_service import Services
 from repositories.establishment_repository import EstablishmentRepository
 from interfaces.web_scraper import CNESScraper
 from interfaces.report_generator import ReportGenerator
@@ -25,6 +26,7 @@ repo = EstablishmentRepository()
 establishment_validator = EstablishmentValidator(repo, scraper)
 data_processor = DataProcessor(establishment_validator)
 csv_scraper = CSVScraper()
+services = Services()
 
 # Error handler for API errors
 @app.errorhandler(BaseError)
@@ -76,6 +78,8 @@ def process_data():
             "cpf": request_data.cpf,
             "name": request_data.name
         }
+        
+        valid_months = services.run_services(body)
         
         # Process data
         overall_result = {}
