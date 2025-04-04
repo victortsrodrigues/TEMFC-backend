@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import quote_plus
 from config.settings import settings
+from errors.establishment_scraping_error import ScrapingError
 import logging
 
 class CNESScraper:
@@ -19,7 +20,12 @@ class CNESScraper:
         driver = webdriver.Chrome(options=self.options)
         try:
             if not self._search_by_cnes(driver, cnes):
-                return self._search_by_name(driver, establishment_name)
+                self.logger.info(f"CNES search failed for {cnes}, trying name search")
+                if not self._search_by_name(driver, establishment_name):
+                    raise ScrapingError(
+                        "Failed to find establishment",
+                        {"cnes": cnes, "name": establishment_name}
+                    )
             return self._check_services(driver)
         except Exception as e:
             self.logger.error(f"Web scraping failed: {e}")
