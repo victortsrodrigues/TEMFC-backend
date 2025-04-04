@@ -21,11 +21,6 @@ CORS(app)  # Enable CORS for all domains on all routes
 
 # Initialize application components
 report_generator = ReportGenerator()
-scraper = CNESScraper()
-repo = EstablishmentRepository()
-establishment_validator = EstablishmentValidator(repo, scraper)
-data_processor = DataProcessor(establishment_validator)
-csv_scraper = CSVScraper()
 services = Services()
 
 # Error handler for API errors
@@ -80,16 +75,7 @@ def process_data():
         }
         
         valid_months = services.run_services(body)
-        
-        # Process data
-        overall_result = {}
-        csv_input = csv_scraper.get_csv_data(body)
-        
-        if not csv_input:
-            return jsonify({"error": "No data found for the provided credentials"}), 404
-        
-        valid_months = data_processor.process_csv(csv_input, overall_result, body)
-        
+                
         # Generate report for console (optional in API context)
         report_generator.report_terminal(body, valid_months)
         
@@ -101,8 +87,8 @@ def process_data():
             "pending_months": max(0, 48 - valid_months)
         }
         
-        if overall_result and body["name"] in overall_result:
-            details = overall_result[body["name"]]
+        if valid_months > 0 and body["name"] in services.get_result_details():
+            details = services.get_result_details()[body["name"]]
             result["details"] = {
                 "semesters_40": details["semesters_40"],
                 "semesters_30": details["semesters_30"],

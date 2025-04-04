@@ -11,6 +11,7 @@ from core.services.validation.range_20_validator import Range20Validator
 from core.services.validation.range_10_validator import Range10Validator
 from utils.date_parser import DateParser
 from utils.cbo_checker import CBOChecker
+from errors.data_processing_error import DataProcessingError
 
 
 class DataProcessor:
@@ -20,10 +21,16 @@ class DataProcessor:
         Range20Validator(),
         Range10Validator(),
     ]
-    
-    REQUIRED_COLUMNS = {"CNES", "IBGE", "ESTABELECIMENTO", 
-                       "CHS AMB.", "DESCRICAO CBO", "COMP."}
-    
+
+    REQUIRED_COLUMNS = {
+        "CNES",
+        "IBGE",
+        "ESTABELECIMENTO",
+        "CHS AMB.",
+        "DESCRICAO CBO",
+        "COMP.",
+    }
+
     def __init__(self, establishment_validator):
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
@@ -31,7 +38,11 @@ class DataProcessor:
     def process_csv(self, csv_input, overall_result: Dict, body: Dict) -> float:
         try:
             result = ProfessionalExperienceValidator()
-            result.file_path = str(csv_input) if isinstance(csv_input, (str, Path)) else "in-memory-data"
+            result.file_path = (
+                str(csv_input)
+                if isinstance(csv_input, (str, Path))
+                else "in-memory-data"
+            )
 
             # Open the file if it's a path, or use the object directly
             if isinstance(csv_input, (str, Path)):
@@ -43,14 +54,13 @@ class DataProcessor:
             else:
                 file = csv_input
                 file.seek(0)
-            
+
             with file:
                 csv_reader = csv.DictReader(file, delimiter=";")
-                
+
                 # Validate columns before processing
-                if not self._validate_columns(csv_reader.fieldnames):
-                    return 0
-                
+                self._validate_columns(csv_reader.fieldnames)
+
                 result.valid_cnes = self.establishment_validator.check_establishment(
                     csv_reader
                 )
@@ -63,30 +73,44 @@ class DataProcessor:
             self._finalize_processing(csv_input, result, overall_result, body)
             return result.calculate_valid_months()
 
+        except DataProcessingError:
+            # Re-raise DataProcessingError exceptions
+            raise
         except Exception as e:
             self.logger.error(f"Error processing CSV {csv_input}: {e}")
-            return 0
+            # Convert all other exceptions to DataProcessingError
+            raise DataProcessingError(
+                f"Failed to process CSV data: {str(e)}",
+                {"input": str(csv_input), "error_type": type(e).__name__},
+            )
 
-    
     def _validate_columns(self, fieldnames) -> bool:
         """Validate CSV contains all required columns"""
         try:
-            if not self.REQUIRED_COLUMNS.issubset(fieldnames):
+            if not fieldnames or not self.REQUIRED_COLUMNS.issubset(fieldnames):
                 missing = self.REQUIRED_COLUMNS - set(fieldnames)
-                self.logger.error(f"CSV file missing required columns: {missing}. ")
-                return False
-            return True
+                error_msg = f"CSV file missing required columns: {missing}"
+                self.logger.error(error_msg)
+                raise DataProcessingError(
+                    "CSV data format is invalid",
+                    {"reason": error_msg, "missing_columns": list(missing)},
+                )
         except TypeError as e:
-            self.logger.error(f"Invalid CSV structure: {e}")
-            return False
-    
-    
-    def _process_validator(self, validator, csv_reader: csv.DictReader, result: ProfessionalExperienceValidator) -> None:
+            error_msg = f"Invalid CSV structure: {e}"
+            self.logger.error(error_msg)
+            raise DataProcessingError("CSV structure is invalid", {"reason": error_msg})
+
+    def _process_validator(
+        self,
+        validator,
+        csv_reader: csv.DictReader,
+        result: ProfessionalExperienceValidator,
+    ) -> None:
         for row in csv_reader:
             try:
-                
+
                 comp_value = DateParser.format_yyyymm_to_mm_yyyy(row["COMP."])
-                
+
                 establishment_data = RowProcessData(
                     cnes=row["CNES"],
                     ibge=row["IBGE"],
@@ -134,19 +158,21 @@ class DataProcessor:
         result.valid_rows.sort(
             key=lambda x: DateParser.format_yyyymm_to_mm_yyyy(x["COMP."]), reverse=True
         )
-        
+
         if isinstance(csv_input, (str, Path)):
             path = Path(csv_input)
             if path.is_file():
                 with open(csv_input, "w", newline="", encoding="utf-8") as f:
                     writer = csv.DictWriter(
                         f,
-                        fieldnames=result.valid_rows[0].keys() if result.valid_rows else [],
+                        fieldnames=(
+                            result.valid_rows[0].keys() if result.valid_rows else []
+                        ),
                         delimiter=";",
                     )
                     writer.writeheader()
                     writer.writerows(result.valid_rows)
-        
+
         overall_result[body["name"]] = {
             "status": (
                 "Eligible"

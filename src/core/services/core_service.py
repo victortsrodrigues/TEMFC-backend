@@ -9,6 +9,7 @@ from errors.external_service_error import ExternalServiceError
 from errors.not_found_error import NotFoundError
 from errors.data_processing_error import DataProcessingError
 
+
 class Services:
     def __init__(self):
         self.report_generator = ReportGenerator()
@@ -17,45 +18,40 @@ class Services:
         self.establishment_validator = EstablishmentValidator(self.repo, self.scraper)
         self.data_processor = DataProcessor(self.establishment_validator)
         self.csv_scraper = CSVScraper()
-        
+        self._overall_result = {}
+
     def run_services(self, body):
-      csv_input = self._retrieve_data_from_cnes(body)
-      overall_result = {}
-      valid_months = self._process_data(csv_input, overall_result, body)
-      return valid_months
-          
-    def _retrieve_data_from_cnes(self, body):
-      try:
-        csv_input = self.csv_scraper.get_csv_data(body)
-      except Exception as e:
-        logging.error(f"CSV scraping error: {str(e)}")
-        raise ExternalServiceError("Failed to retrieve data from CNES", {
-            "source": "data_retrieval",
-            "details": str(e)
-        })
-        
-      if not csv_input:
-          raise NotFoundError("No data found for the provided credentials")
-        
-      return csv_input
-    
-    
-    def _process_data(self, csv_input, overall_result, body):
-      try:
-        valid_months = self.data_processor.process_csv(csv_input, overall_result, body)
+        csv_input = self._retrieve_data_from_cnes(body)
+        valid_months = self._process_data(csv_input, self._overall_result, body)
         return valid_months
-      except Exception as e:
-        logging.error(f"Data processing error: {str(e)}")
-        error_message = str(e)
-        if "missing required columns" in error_message.lower():
-            raise DataProcessingError("CSV data format is invalid", {
-                "reason": error_message
-            })
-        if "Invalid CSV structure" in error_message.lower():
-            raise DataProcessingError("CSV data format is invalid", {
-                "reason": error_message
-            })
-        else:
-            raise DataProcessingError("Failed to process professional data", {
-                "reason": error_message
-            })
+
+    def get_result_details(self):
+        return self._overall_result
+    
+    def _retrieve_data_from_cnes(self, body):
+        try:
+            csv_input = self.csv_scraper.get_csv_data(body)
+        except Exception as e:
+            logging.error(f"CSV scraping error: {str(e)}")
+            raise ExternalServiceError(
+                "Failed to retrieve data from CNES",
+                {"source": "data_retrieval", "details": str(e)},
+            )
+
+        if not csv_input:
+            raise NotFoundError("No data found for the provided credentials")
+
+        return csv_input
+
+    def _process_data(self, csv_input, overall_result, body):
+        try:
+            return self.data_processor.process_csv(csv_input, overall_result, body)
+        except DataProcessingError:
+            # Let DataProcessingError bubble up without modifying it
+            raise
+        except Exception as e:
+            # Convert any other exceptions to DataProcessingError
+            logging.error(f"Data processing error: {str(e)}")
+            raise DataProcessingError(
+                "Failed to process professional data", {"reason": str(e)}
+            )
