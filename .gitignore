@@ -20,3 +20,6 @@ htmlcov/
 
 # Cache from pytest
 .pytest_cache/
+
+# File not needed for the api
+src/interfaces/report_generator.py

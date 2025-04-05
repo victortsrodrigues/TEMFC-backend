@@ -11,6 +11,7 @@ from errors.data_processing_error import DataProcessingError
 from errors.establishment_validator_error import EstablishmentValidationError
 from errors.establishment_scraping_error import ScrapingError
 from errors.database_error import DatabaseError
+from errors.csv_scraping_error import CSVScrapingError
 
 
 class Services:
@@ -34,18 +35,26 @@ class Services:
     def _retrieve_data_from_cnes(self, body):
         try:
             csv_input = self.csv_scraper.get_csv_data(body)
+
+            if not csv_input:
+                raise NotFoundError("No data found for the provided credentials")
+
+            return csv_input
+
+        except CSVScrapingError as e:
+            logging.error(f"CSV scraping error: {e.message}")
+            raise NotFoundError(
+                "Failed to retrieve data from CNES",
+                {"source": "data_retrieval", "details": e.details}
+            )
         except Exception as e:
-            logging.error(f"CSV scraping error: {str(e)}")
-            raise ExternalServiceError(
+            logging.error(f"Unexpected error in data retrieval: {str(e)}")
+            raise NotFoundError(
                 "Failed to retrieve data from CNES",
                 {"source": "data_retrieval", "details": str(e)},
             )
-
-        if not csv_input:
-            raise NotFoundError("No data found for the provided credentials")
-
-        return csv_input
-
+        
+        
     def _process_data(self, csv_input, overall_result, body):
         try:
             return self.data_processor.process_csv(csv_input, overall_result, body)

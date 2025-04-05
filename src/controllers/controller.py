@@ -1,15 +1,11 @@
 import logging
 import traceback
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
-from core.services.data_processor import DataProcessor
-from core.services.establishment_validator import EstablishmentValidator
 from core.services.core_service import Services
-from repositories.establishment_repository import EstablishmentRepository
-from interfaces.web_scraper import CNESScraper
 from interfaces.report_generator import ReportGenerator
-from interfaces.csv_scraper import CSVScraper
 from errors.base_error import BaseError
 from errors.validation_error import ValidationError
 from schemas.validate_schemas import ValidateSchema, PydanticValidationError 
@@ -68,16 +64,14 @@ def process_data():
                 errors[field] = msg
             raise ValidationError("Invalid body", details=errors)
 
-        # Prepare body para processamento (já validado/formatado)
+
         body = {
             "cpf": request_data.cpf,
             "name": request_data.name
         }
         
+        # Run services
         valid_months = services.run_services(body)
-                
-        # Generate report for console (optional in API context)
-        report_generator.report_terminal(body, valid_months)
         
         # Prepare API response
         result = {
