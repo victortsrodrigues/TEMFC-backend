@@ -1,6 +1,4 @@
-from repositories.establishment_repository import EstablishmentRepository
 from utils.cbo_checker import CBOChecker
-from interfaces.web_scraper import CNESScraper
 from core.models.row_process_data import RowProcessData
 from utils.date_parser import DateParser
 from errors.establishment_validator_error import EstablishmentValidationError

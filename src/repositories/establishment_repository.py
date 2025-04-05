@@ -1,4 +1,3 @@
-import sqlite3
 import logging
 from config.settings import settings
 from sqlalchemy import text

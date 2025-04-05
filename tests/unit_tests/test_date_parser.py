@@ -3,16 +3,17 @@ from datetime import datetime
 from src.utils.date_parser import DateParser
 
 # Unit Tests
-class TestDateParser:
-    def test_parse_standard_format(self):
+class TestDateParser:            
+    def test_format_yyyymm_to_mm_yyyy_standard_format(self):
         """Test parsing dates in standard format"""
-        assert DateParser.parse("01/2025") == datetime(2025, 1, 1)
+        assert DateParser.format_yyyymm_to_mm_yyyy("202501") == "01/2025"
     
-    def test_parse_abbreviated_month(self):
+    def test_format_yyyymm_to_mm_yyyy_invalid_date_format(self):
         """Test parsing dates with abbreviated months"""
-        assert DateParser.parse("jan/25") == datetime(2025, 1, 1)
+        with pytest.raises(ValueError):
+            DateParser.format_yyyymm_to_mm_yyyy("2025")
     
-    def test_parse_invalid_date(self):
+    def test_format_yyyymm_to_mm_yyyy_invalid_mont_in_date(self):
         """Test handling of invalid date formats"""
         with pytest.raises(ValueError):
-            DateParser.parse("invalid/date")
+            DateParser.format_yyyymm_to_mm_yyyy("202513")

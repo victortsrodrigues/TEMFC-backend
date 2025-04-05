@@ -3,7 +3,6 @@ from core.services.data_processor import DataProcessor
 from core.services.establishment_validator import EstablishmentValidator
 from repositories.establishment_repository import EstablishmentRepository
 from interfaces.web_scraper import CNESScraper
-from interfaces.report_generator import ReportGenerator
 from interfaces.csv_scraper import CSVScraper
 from errors.external_service_error import ExternalServiceError
 from errors.not_found_error import NotFoundError
@@ -16,7 +15,6 @@ from errors.csv_scraping_error import CSVScrapingError
 
 class Services:
     def __init__(self):
-        self.report_generator = ReportGenerator()
         self.scraper = CNESScraper()
         self.repo = EstablishmentRepository()
         self.establishment_validator = EstablishmentValidator(self.repo, self.scraper)

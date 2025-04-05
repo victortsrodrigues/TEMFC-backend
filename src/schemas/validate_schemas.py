@@ -1,5 +1,4 @@
 import re
-from errors.validation_error import ValidationError
 from pydantic import BaseModel, field_validator, ValidationError as PydanticValidationError
 
 class ValidateSchema(BaseModel):
