@@ -97,6 +97,18 @@ def establishment_data_valid_cbo_clinical():
     
 
 @pytest.fixture
+def establishment_data_valid_cbo_generalist():
+    return RowProcessData(
+        cnes="12345",
+        ibge="123",
+        name="Test Unit",
+        chs_amb=float("40"),
+        cbo_desc="MEDICO GENERALISTA",
+        comp_value="01/2023"
+    )
+
+
+@pytest.fixture
 def establishment_data_invalid_chs():
     return RowProcessData(
         cnes="12345",
