@@ -353,3 +353,5 @@ invalid;;Test Hospital;invalid_chs;MEDICO CLINICO;202401
         valid_cnes = validator.check_establishment(csv_reader)
 
         assert len(valid_cnes) == 0
+
+
