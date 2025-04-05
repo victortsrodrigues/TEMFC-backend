@@ -1,10 +1,19 @@
 import pytest
 from src.repositories.establishment_repository import EstablishmentRepository
+from src.core.services.core_service import Services
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.core.services.data_processor import DataProcessor
 from src.core.models.row_process_data import RowProcessData
 from src.interfaces.web_scraper import CNESScraper
 from unittest.mock import Mock, patch
+
+@pytest.fixture
+def mock_establishment_services_return_valid():
+    """Create a mock services valid"""
+    services = Mock(spec=Services)
+    services.run_services.return_value = 50
+    return  services
+
 
 @pytest.fixture
 def mock_establishment_repo_return_true():

@@ -2,79 +2,67 @@ import pytest
 import csv
 from src.core.models.row_process_data import RowProcessData
 from pathlib import Path
+from io import StringIO
 
 @pytest.fixture
-def csv_factory_chs_cbo(tmp_path):
+def csv_factory_chs_cbo():
     """Factory para criar arquivos CSV de teste"""
     
-    def _create_csv(data=None, filename="test_data.csv"):
+    def _create_csv(data=None):
         
         final_data = [
-            {
-                "CNES": "6990193",
-                "IBGE": "350750",
-                "ESTABELECIMENTO": "USF COHAB IV BOTUCATU",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO DA FAMILIA",
-                "COMP.": "01/2023"
-            },
-            {
-                "CNES": "6990193",
-                "IBGE": "350750",
-                "ESTABELECIMENTO": "USF COHAB IV BOTUCATU",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO DA FAMILIA",
-                "COMP.": "02/2023"
-            },
-        ] + (data if data else [])        
-
-        csv_path = tmp_path / filename
+            ["6990193", "350750", "USF COHAB IV BOTUCATU", "40", "MEDICO DA FAMILIA", "202301"],
+            ["6990193", "350750", "USF COHAB IV BOTUCATU", "40", "MEDICO DA FAMILIA", "202302"],
+        ]
         
-        with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ["CNES", "IBGE", "ESTABELECIMENTO", "CHS AMB.", "DESCRICAO CBO", "COMP."]
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';')
-            writer.writeheader()
-            writer.writerows(final_data)
+        if data:
+            final_data.append(data)
+        
+        print(final_data)
+        
+        csv_content = "CNES;IBGE;ESTABELECIMENTO;CHS AMB.;DESCRICAO CBO;COMP.\n"
+        csv_content += "\n".join(";".join(map(str, row)) for row in final_data)
+        csv_file = StringIO(csv_content)
             
-        return csv_path
+        return csv_file
 
     return _create_csv
 
 
 @pytest.fixture
-def csv_factory_establishment(tmp_path):
+def csv_factory_chs_cbo_clear():
+    """Factory para criar arquivos CSV de teste"""
+    def _create_csv(data):
+        csv_content = "CNES;IBGE;ESTABELECIMENTO;CHS AMB.;DESCRICAO CBO;COMP.\n"
+        csv_content += "\n".join(";".join(map(str, row)) for row in data)
+        csv_file = StringIO(csv_content)
+            
+        return csv_file
+    return _create_csv
+
+
+@pytest.fixture
+def csv_factory_establishment():
     """Factory para criar arquivos CSV de teste"""
     
-    def _create_csv(data=None, filename="test_data.csv"):
+    def _create_csv(data=None):
         
         final_data = [
-            {
-                "CNES": "6990193",
-                "IBGE": "350750",
-                "ESTABELECIMENTO": "USF COHAB IV BOTUCATU",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO CLINICO",
-                "COMP.": "01/2023"
-            },
-            {
-                "CNES": "6644694",
-                "IBGE": "350750",
-                "ESTABELECIMENTO": "USF REAL PARK BOTUCATU",
-                "CHS AMB.": "40",
-                "DESCRICAO CBO": "MEDICO GENERALISTA",
-                "COMP.": "02/2023"
-            },
-        ] + (data if data else [])        
-
-        csv_path = tmp_path / filename
+            ["6990193", "350750", "USF COHAB IV BOTUCATU", "40", "MEDICO CLINICO", "202301"],
+            ["6644694", "350750", "USF REAL PARK BOTUCATU", "40", "MEDICO GENERALISTA", "202302"],
+        ]
         
-        with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ["CNES", "IBGE", "ESTABELECIMENTO", "CHS AMB.", "DESCRICAO CBO", "COMP."]
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';')
-            writer.writeheader()
-            writer.writerows(final_data)
+        if data:
+            final_data.append(data)
+        
+        print(final_data)
+        
+        csv_content = "CNES;IBGE;ESTABELECIMENTO;CHS AMB.;DESCRICAO CBO;COMP.\n"
+        csv_content += "\n".join(";".join(map(str, row)) for row in final_data)
+        csv_file = StringIO(csv_content)
+        csv_reader = csv.DictReader(csv_file, delimiter=';')
             
-        return csv_path
+        return csv_reader
 
     return _create_csv
 
