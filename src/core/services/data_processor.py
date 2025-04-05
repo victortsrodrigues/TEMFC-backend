@@ -77,11 +77,11 @@ class DataProcessor:
             # Re-raise DataProcessingError exceptions
             raise
         except Exception as e:
-            self.logger.error(f"Error processing CSV {csv_input}: {e}")
+            self.logger.error(f"Error processing CSV: {e}")
             # Convert all other exceptions to DataProcessingError
             raise DataProcessingError(
                 f"Failed to process CSV data: {str(e)}",
-                {"input": str(csv_input), "error_type": type(e).__name__},
+                {"input": str(body["name"]), "error_type": type(e).__name__},
             )
 
     def _validate_columns(self, fieldnames) -> bool:

@@ -4,6 +4,7 @@ from interfaces.web_scraper import CNESScraper
 from core.models.row_process_data import RowProcessData
 from utils.date_parser import DateParser
 from errors.establishment_validator_error import EstablishmentValidationError
+from errors.database_error import DatabaseError
 import logging
 
 class EstablishmentValidator:
@@ -19,6 +20,8 @@ class EstablishmentValidator:
                     self.logger.warning("No valid unique entries found in CSV data")
             valid_cnes = self._get_valid_cnes(unique_entries)
             return valid_cnes
+        except DatabaseError:
+            raise
         except Exception as e:
             self.logger.error(f"Error in check_establishment: {str(e)}")
             raise EstablishmentValidationError(
@@ -46,21 +49,44 @@ class EstablishmentValidator:
 
     def _get_valid_cnes(self, unique_entries):
         valid_cnes = []
+        validation_errors = []
+        
         for entry in unique_entries:
             if entry.cnes not in valid_cnes:
                 try:
-                    cnes_validation = self.repo.check_establishment(entry.ibge + entry.cnes)
-                    if cnes_validation is True:
+                    if self._validate_with_repo(entry) is True:
                         valid_cnes.append(entry.cnes)
-                    elif cnes_validation is None:
-                        online_validation_success = self.scraper.validate_online(entry.cnes, entry.name)
-                        if online_validation_success:
-                            valid_cnes.append(entry.cnes)
+                    elif self._validate_with_repo(entry) is None:
+                        self._validate_online(entry, valid_cnes)
+                
+                except DatabaseError as db_error:
+                    self.logger.error(f"Database error validating CNES {entry.cnes}: {db_error}")
+                    raise
                 except Exception as e:
+                    validation_errors.append({
+                        "cnes": entry.cnes, 
+                        "name": entry.name,
+                        "reason": str(e)
+                    })
                     self.logger.error(f"Failed to validate CNES {entry.cnes}: {e}")
                     continue
+        
+        if validation_errors:
+            self.logger.warning(f"Validation errors occurred: {validation_errors}")
+        
         return valid_cnes
 
+    
+    def _validate_with_repo(self, entry):
+        return self.repo.check_establishment(entry.ibge + entry.cnes)
+    
+    
+    def _validate_online(self, entry, valid_cnes):
+        online_validation_success = self.scraper.validate_online(entry.cnes, entry.name)
+        if online_validation_success:
+            valid_cnes.append(entry.cnes)
+    
+    
     def _create_entry(self, line) -> RowProcessData:
         try:
             cnes = line["CNES"]

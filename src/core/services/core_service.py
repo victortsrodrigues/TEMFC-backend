@@ -8,6 +8,9 @@ from interfaces.csv_scraper import CSVScraper
 from errors.external_service_error import ExternalServiceError
 from errors.not_found_error import NotFoundError
 from errors.data_processing_error import DataProcessingError
+from errors.establishment_validator_error import EstablishmentValidationError
+from errors.establishment_scraping_error import ScrapingError
+from errors.database_error import DatabaseError
 
 
 class Services:
@@ -46,9 +49,16 @@ class Services:
     def _process_data(self, csv_input, overall_result, body):
         try:
             return self.data_processor.process_csv(csv_input, overall_result, body)
-        except DataProcessingError:
-            # Let DataProcessingError bubble up without modifying it
+        except (DataProcessingError, EstablishmentValidationError, ScrapingError):
+            # Re-raise specific exceptions
             raise
+        except DatabaseError as db_error:
+            # Convert DatabaseError to ExternalServiceError for API response
+            logging.error(f"Database error during processing: {str(db_error)}")
+            raise ExternalServiceError(
+                "Database service unavailable",
+                {"source": "database", "details": db_error.details}
+            )
         except Exception as e:
             # Convert any other exceptions to DataProcessingError
             logging.error(f"Data processing error: {str(e)}")
