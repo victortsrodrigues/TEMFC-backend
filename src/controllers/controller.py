@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from core.services.core_service import Services
-from interfaces.report_generator import ReportGenerator
 from errors.base_error import BaseError
 from errors.validation_error import ValidationError
 from schemas.validate_schemas import ValidateSchema, PydanticValidationError 
@@ -16,7 +15,6 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all domains on all routes
 
 # Initialize application components
-report_generator = ReportGenerator()
 services = Services()
 
 # Error handler for API errors
