@@ -11,6 +11,7 @@ from core.services.validation.range_20_validator import Range20Validator
 from core.services.validation.range_10_validator import Range10Validator
 from utils.date_parser import DateParser
 from utils.cbo_checker import CBOChecker
+from utils.sse_manager import sse_manager
 from errors.data_processing_error import DataProcessingError
 
 
@@ -35,7 +36,7 @@ class DataProcessor:
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
 
-    def process_csv(self, csv_input, overall_result: Dict, body: Dict) -> float:
+    def process_csv(self, csv_input, overall_result: Dict, body: Dict, request_id=None) -> float:
         try:
             result = ProfessionalExperienceValidator()
             result.file_path = (
@@ -61,17 +62,61 @@ class DataProcessor:
                 # Validate columns before processing
                 self._validate_columns(csv_reader.fieldnames)
 
+                # Step 2: Check establishment validity
                 result.valid_cnes = self.establishment_validator.check_establishment(
-                    csv_reader
+                    csv_reader, request_id
                 )
-
-                for validator in self.VALIDATION_STRATEGIES:
+                # Step 3: Process validations
+                if request_id:
+                    sse_manager.publish_progress(
+                        request_id, 
+                        3, 
+                        "Calculating valid months", 
+                        0, 
+                        "in_progress"
+                    )
+                
+                for i, validator in enumerate(self.VALIDATION_STRATEGIES):
+                    # Calculate progress for this step
+                    strategy_progress_base = (i / len(self.VALIDATION_STRATEGIES)) * 80
+                    
+                    if request_id:
+                        validator_name = validator.__class__.__name__.replace("Validator", "")
+                        sse_manager.publish_progress(
+                            request_id, 
+                            3, 
+                            f"Processing {validator_name} records", 
+                            int(strategy_progress_base), 
+                            "in_progress"
+                        )
+                    
                     file.seek(0)
                     csv_reader = csv.DictReader(file, delimiter=";")
                     self._process_validator(validator, csv_reader, result)
-
+            
+            # Finalize processing and update overall results
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    3, 
+                    "Finalizing calculations", 
+                    90, 
+                    "in_progress"
+                )
+            
             self._finalize_processing(csv_input, result, overall_result, body)
-            return result.calculate_valid_months()
+            valid_months = result.calculate_valid_months()
+            
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    3,
+                    f"Calculation complete: {valid_months} valid months",
+                    95,
+                    "in_progress"
+                )
+
+            return valid_months
 
         except DataProcessingError:
             # Re-raise DataProcessingError exceptions

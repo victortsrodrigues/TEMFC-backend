@@ -3,6 +3,7 @@ from core.models.row_process_data import RowProcessData
 from utils.date_parser import DateParser
 from errors.establishment_validator_error import EstablishmentValidationError
 from errors.database_error import DatabaseError
+from utils.sse_manager import sse_manager
 import logging
 
 class EstablishmentValidator:
@@ -11,16 +12,69 @@ class EstablishmentValidator:
         self.scraper = scraper
         self.logger = logging.getLogger(__name__)
 
-    def check_establishment(self, csv_reader):
+    def check_establishment(self, csv_reader, request_id=None):
         try:
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    2, 
+                    "Extracting unique establishments from data", 
+                    10, 
+                    "in_progress"
+                )
+                
             unique_entries = self._get_unique_entries(csv_reader)
             if not unique_entries:
-                    self.logger.warning("No valid unique entries found in CSV data")
-            valid_cnes = self._get_valid_cnes(unique_entries)
+                self.logger.warning("No valid unique entries found in CSV data")
+                if request_id:
+                    sse_manager.publish_progress(
+                        request_id, 
+                        2, 
+                        "No valid establishments found in data", 
+                        20, 
+                        "in_progress"
+                    )
+            
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    2, 
+                    f"Found {len(unique_entries)} unique establishments to validate", 
+                    30, 
+                    "in_progress"
+                )
+            
+            valid_cnes = self._get_valid_cnes(unique_entries, request_id)
+            
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    2, 
+                    f"Validated {len(valid_cnes)} establishments successfully", 
+                    100, 
+                    "completed"
+                )
+                
             return valid_cnes
         except DatabaseError:
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    2, 
+                    "Database error during establishment validation", 
+                    100, 
+                    "error"
+                )
             raise
         except Exception as e:
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    2, 
+                    f"Error validating establishments: {str(e)}", 
+                    100, 
+                    "error"
+                )
             self.logger.error(f"Error in check_establishment: {str(e)}")
             raise EstablishmentValidationError(
                 "Failed to validate establishments",
@@ -45,20 +99,61 @@ class EstablishmentValidator:
                 {"reason": str(e)}
             )
 
-    def _get_valid_cnes(self, unique_entries):
+    def _get_valid_cnes(self, unique_entries, request_id=None):
         valid_cnes = []
         validation_errors = []
+        total_entries = len(unique_entries)
         
-        for entry in unique_entries:
+        for i, entry in enumerate(unique_entries):
+            # Calculate progress percentage for SSE updates
+            progress_percentage = 30 + int((i / total_entries) * 70) if total_entries > 0 else 50
+            
             if entry.cnes not in valid_cnes:
                 try:
-                    if self._validate_with_repo(entry) is True:
+                    if request_id:
+                        sse_manager.publish_progress(
+                            request_id, 
+                            2, 
+                            f"Validating establishment: {entry.name} (CNES: {entry.cnes})", 
+                            progress_percentage, 
+                            "in_progress"
+                        )
+                        
+                    # Check establishment in database first
+                    db_result = self._validate_with_repo(entry)
+                    
+                    if db_result is True:
                         valid_cnes.append(entry.cnes)
-                    elif self._validate_with_repo(entry) is None:
+                        if request_id:
+                            sse_manager.publish_progress(
+                                request_id, 
+                                2, 
+                                f"Validated {entry.name} (CNES: {entry.cnes}) from database", 
+                                progress_percentage, 
+                                "in_progress"
+                            )
+                    elif db_result is None:
+                        # Not found in database, try online validation
+                        if request_id:
+                            sse_manager.publish_progress(
+                                request_id, 
+                                2, 
+                                f"Not found in database. Validating {entry.name} (CNES: {entry.cnes}) online", 
+                                progress_percentage, 
+                                "in_progress"
+                            )
                         self._validate_online(entry, valid_cnes)
                 
                 except DatabaseError as db_error:
                     self.logger.error(f"Database error validating CNES {entry.cnes}: {db_error}")
+                    if request_id:
+                        sse_manager.publish_progress(
+                            request_id, 
+                            2, 
+                            f"Database error validating {entry.name} (CNES: {entry.cnes})", 
+                            progress_percentage, 
+                            "in_progress"
+                        )
                     raise
                 except Exception as e:
                     validation_errors.append({
@@ -67,6 +162,14 @@ class EstablishmentValidator:
                         "reason": str(e)
                     })
                     self.logger.error(f"Failed to validate CNES {entry.cnes}: {e}")
+                    if request_id:
+                        sse_manager.publish_progress(
+                            request_id, 
+                            2, 
+                            f"Failed to validate {entry.name} (CNES: {entry.cnes}): {str(e)}", 
+                            progress_percentage, 
+                            "in_progress"
+                        )
                     continue
         
         if validation_errors:
