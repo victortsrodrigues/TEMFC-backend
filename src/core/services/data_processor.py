@@ -39,19 +39,10 @@ class DataProcessor:
     def process_csv(self, csv_input, overall_result: Dict, body: Dict, request_id=None) -> float:
         try:
             result = ProfessionalExperienceValidator()
-            result.file_path = (
-                str(csv_input)
-                if isinstance(csv_input, (str, Path))
-                else "in-memory-data"
-            )
+            result.file_path = "in-memory-data"
 
-            # Open the file if it's a path, or use the object directly
-            if isinstance(csv_input, (str, Path)):
-                path = Path(csv_input)
-                if path.is_file():
-                    file = open(path, "r", encoding="utf-8")
-                else:
-                    file = io.StringIO(csv_input)  # Treat as in-memory CSV string
+            if isinstance(csv_input, str):
+                file = io.StringIO(csv_input)  # Treat as in-memory CSV string
             else:
                 file = csv_input
                 file.seek(0)
@@ -104,7 +95,7 @@ class DataProcessor:
                     "in_progress"
                 )
             
-            self._finalize_processing(csv_input, result, overall_result, body)
+            self._finalize_processing(result, overall_result, body)
             valid_months = result.calculate_valid_months()
             
             if request_id:
@@ -195,7 +186,6 @@ class DataProcessor:
 
     def _finalize_processing(
         self,
-        csv_input,
         result: ProfessionalExperienceValidator,
         overall_result: Dict,
         body: Dict,
@@ -203,20 +193,6 @@ class DataProcessor:
         result.valid_rows.sort(
             key=lambda x: DateParser.format_yyyymm_to_mm_yyyy(x["COMP."]), reverse=True
         )
-
-        if isinstance(csv_input, (str, Path)):
-            path = Path(csv_input)
-            if path.is_file():
-                with open(csv_input, "w", newline="", encoding="utf-8") as f:
-                    writer = csv.DictWriter(
-                        f,
-                        fieldnames=(
-                            result.valid_rows[0].keys() if result.valid_rows else []
-                        ),
-                        delimiter=";",
-                    )
-                    writer.writeheader()
-                    writer.writerows(result.valid_rows)
 
         overall_result[body["name"]] = {
             "status": (
