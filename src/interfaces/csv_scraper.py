@@ -93,7 +93,18 @@ class CSVScraper:
             encoded_name = name.replace(" ", "%20")
             driver.get(f"https://cnes.datasus.gov.br/pages/profissionais/consulta.jsp?search={encoded_name}")
             del driver.requests
-            return self._wait_for_element(driver, "button.btn.btn-default[ng-click*='historicoProfissional']", By.CSS_SELECTOR)
+            found = self._wait_for_element(driver, "button.btn.btn-default[ng-click*='historicoProfissional']", By.CSS_SELECTOR)
+            if found:
+                # Check the number of buttons
+                buttons = driver.find_elements(By.CSS_SELECTOR, "button.btn.btn-default[ng-click*='historicoProfissional']")
+                if len(buttons) > 1:
+                    self.logger.warning(f"Multiple professionals found for name: {name}")
+                    raise CSVScrapingError(
+                        "Multiple professionals found with the provided name",
+                        {"name": name}
+                    )
+                return True
+            return False
         except Exception as e:
             self.logger.warning(f"Error searching by name {name}: {e}")
             return False
