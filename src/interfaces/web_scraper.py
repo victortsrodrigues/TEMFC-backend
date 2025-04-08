@@ -33,19 +33,19 @@ class CNESScraper:
         except TimeoutException as e:
             self.logger.error(f"Timeout during web scraping for CNES {cnes}: {e}")
             raise ScrapingError(
-                "Operation timed out during validation",
+                "Operação demorou mais do que o esperado",
                 {"cnes": cnes, "name": establishment_name, "details": str(e)}
             )
         except NoSuchElementException as e:
             self.logger.error(f"Element not found for CNES {cnes}: {e}")
             raise ScrapingError(
-                "Required element not found during validation",
+                "Elemento não encontrado durante a validação",
                 {"cnes": cnes, "name": establishment_name, "details": str(e)}
             )
         except WebDriverException as e:
             self.logger.error(f"WebDriver error for CNES {cnes}: {e}")
             raise ScrapingError(
-                "WebDriver error during validation",
+                "Erro de WebDriver durante a validação",
                 {"cnes": cnes, "name": establishment_name, "details": str(e)}
             )
         except ScrapingError:
@@ -53,7 +53,7 @@ class CNESScraper:
         except Exception as e:
             self.logger.error(f"Unexpected error during web scraping for CNES {cnes}: {e}")
             raise ScrapingError(
-                "Web validation failed", 
+                "Erro inesperado durante a validação", 
                 {"cnes": cnes, "name": establishment_name, "details": str(e)}
             )
         finally:
@@ -134,10 +134,10 @@ class CNESScraper:
             element.click()
         except NoSuchElementException as e:
             self.logger.warning(f"Element not found for clicking: {selector}")
-            raise NoSuchElementException(f"Element not found: {selector}")
+            raise NoSuchElementException(f"Elemento não encontrado: {selector}")
         except TimeoutException as e:
             self.logger.warning(f"Timeout waiting for element to be clickable: {selector}")
-            raise TimeoutException(f"Element not clickable: {selector}")
+            raise TimeoutException(f"Elemento não clicável: {selector}")
         except Exception as e:
             self.logger.warning(f"Failed to click element {selector}: {e}")
             raise

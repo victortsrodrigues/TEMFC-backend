@@ -16,12 +16,12 @@ class DateParser:
             ValueError: If input is invalid.
         """
         if len(date_str) != 6 or not date_str.isdigit():
-            raise ValueError(f"Invalid date format: {date_str}")
+            raise ValueError(f"Formato de data inválido: {date_str}")
         
         year = date_str[:4]
         month = date_str[4:]
         
         if not (1 <= int(month) <= 12):
-            raise ValueError(f"Invalid month in date: {date_str}")
+            raise ValueError(f"Mês inválido: {date_str}")
         
         return f"{month}/{year}"

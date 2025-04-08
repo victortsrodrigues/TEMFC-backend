@@ -72,6 +72,15 @@ class Services:
             csv_input = self.csv_scraper.get_csv_data(body, request_id)
 
             if not csv_input:
+                # if request_id:
+                #     sse_manager.publish_progress(
+                #         request_id, 
+                #         1, 
+                #         "No data found for the provided credentials", 
+                #         100, 
+                #         "error"
+                #     )
+                raise NotFoundError("Profissional não encontrado no CNES")
                 if request_id:
                     sse_manager.publish_progress(
                         request_id, 
@@ -79,8 +88,7 @@ class Services:
                         "No data found for the provided credentials", 
                         100, 
                         "error"
-                    )
-                raise NotFoundError("No data found for the provided credentials")
+                    )        
 
             if request_id:
                 sse_manager.publish_progress(
@@ -95,30 +103,30 @@ class Services:
 
         except CSVScrapingError as e:
             logging.error(f"CSV scraping error: {e.message}")
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    1, 
-                    f"Error retrieving data: {e.message}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         1, 
+            #         f"{e.message}", 
+            #         100, 
+            #         "error"
+            #     )
             raise NotFoundError(
-                "Failed to retrieve data from CNES",
+                "Erro ao acessar o histórico profissional no CNES",
                 {"source": "data_retrieval", "details": e.details}
             )
         except Exception as e:
             logging.error(f"Unexpected error in data retrieval: {str(e)}")
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    1, 
-                    f"Unexpected error retrieving data: {str(e)}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         1, 
+            #         f"Unexpected error retrieving data: {str(e)}", 
+            #         100, 
+            #         "error"
+            #     )
             raise NotFoundError(
-                "Failed to retrieve data from CNES",
+                "Profissional não encontrado no CNES",
                 {"source": "data_retrieval", "details": str(e)},
             )
         
@@ -140,44 +148,44 @@ class Services:
             
         except (DataProcessingError, EstablishmentValidationError, ScrapingError) as e:
             # Send error progress via SSE
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    f"Error during processing: {e.message}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         2, 
+            #         f"Error during processing: {e.message}", 
+            #         100, 
+            #         "error"
+            #     )
             # Re-raise specific exceptions
             raise
         except DatabaseError as db_error:
             # Send database error progress via SSE
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    f"Database service unavailable: {db_error.message}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         2, 
+            #         f"Database service unavailable: {db_error.message}", 
+            #         100, 
+            #         "error"
+            #     )
             # Convert DatabaseError to ExternalServiceError for API response
             logging.error(f"Database error during processing: {str(db_error)}")
             raise ExternalServiceError(
-                "Database service unavailable",
+                "Banco de dados indisponível",
                 {"source": "database", "details": db_error.details}
             )
         except Exception as e:
             # Send general error progress via SSE
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    f"Error processing data: {str(e)}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         2, 
+            #         f"Error processing data: {str(e)}", 
+            #         100, 
+            #         "error"
+            #     )
             # Convert any other exceptions to DataProcessingError
             logging.error(f"Data processing error: {str(e)}")
             raise DataProcessingError(
-                "Failed to process professional data", {"reason": str(e)}
+                "Erro ao processar os dados do profissional", {"reason": str(e)}
             )

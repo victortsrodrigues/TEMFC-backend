@@ -44,7 +44,7 @@ class CSVScraper:
                 if not self._search_by_name(driver, name, request_id):
                     self.logger.warning(f"Could not find professional - CPF: {cpf}, name: {name}")
                     raise CSVScrapingError(
-                        "Professional not found in CNES database",
+                        "Profissional não encontrado no CNES",
                         {"cpf": cpf, "name": name}
                     )
             return self._intercept_data(driver)
@@ -52,19 +52,19 @@ class CSVScraper:
         except TimeoutException as e:
             self.logger.error(f"Timeout during CSV scraping for CPF {body.get('cpf')}: {e}")
             raise CSVScrapingError(
-                "Operation timed out during data retrieval",
+                "Operação de busca de dados demorou mais do que o esperado",
                 {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
             )
         except NoSuchElementException as e:
             self.logger.error(f"Element not found for CPF {body.get('cpf')}: {e}")
             raise CSVScrapingError(
-                "Required element not found during data retrieval",
+                "Elemento não encontrado durante a busca de dados",
                 {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
             )
         except WebDriverException as e:
             self.logger.error(f"WebDriver error for CPF {body.get('cpf')}: {e}")
             raise CSVScrapingError(
-                "WebDriver error during data retrieval",
+                "Erro ao acessar o site do CNES",
                 {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
             )
         except CSVScrapingError:
@@ -72,7 +72,7 @@ class CSVScraper:
         except Exception as e:
             self.logger.error(f"Unexpected error during CSV scraping for CPF {body.get('cpf')}: {e}")
             raise CSVScrapingError(
-                "CSV data retrieval failed", 
+                "Erro inesperado ao buscar dados", 
                 {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
             )
         finally:
@@ -112,7 +112,7 @@ class CSVScraper:
                 if len(buttons) > 1:
                     self.logger.warning(f"Multiple professionals found for name: {name}")
                     raise CSVScrapingError(
-                        "Multiple professionals found with the provided name",
+                        "Múltiplos profissionais encontrados para o nome fornecido",
                         {"name": name}
                     )
                 return True
@@ -127,7 +127,7 @@ class CSVScraper:
             if not self._wait_for_element(driver, "button.btn.btn-primary[ng-csv='getHistoricoProfissional()']", By.CSS_SELECTOR, 5):
                 self.logger.warning("CSV export button not found")
                 raise CSVScrapingError(
-                    "CSV export functionality not available",
+                    "Funcionalidade de exportar o histórico não encontrada",
                     {"element": "CSV export button"}
                 )
             
@@ -135,7 +135,7 @@ class CSVScraper:
             intercepted_data = self._wait_for_intercepted_data(driver)
             if not intercepted_data:
                 raise CSVScrapingError(
-                    "Failed to retrieve CSV data",
+                    "Erro ao interceptar dados CSV",
                     {"reason": "Data interception timeout"}
                 )
             
@@ -144,13 +144,13 @@ class CSVScraper:
         except NoSuchElementException as e:
             self.logger.warning(f"Element not found during CSV interception: {e}")
             raise CSVScrapingError(
-                "Required element not found during data export",
+                "Elemento não encontrado durante a exportação do CSV",
                 {"details": str(e)}
             )
         except TimeoutException as e:
             self.logger.warning(f"Timeout during CSV interception: {e}")
             raise CSVScrapingError(
-                "Operation timed out during data export",
+                "Operação demorando mais do que o esperado",
                 {"details": str(e)}
             )
         except CSVScrapingError:
@@ -158,11 +158,11 @@ class CSVScraper:
         except Exception as e:
             self.logger.warning(f"CSV data interception failed: {e}")
             raise CSVScrapingError(
-                "CSV data export failed",
+                "Processo de exportação do CSV falhou",
                 {"details": str(e)}
             )
     
-    def _wait_for_element(self, driver, selector, by, timeout=30):
+    def _wait_for_element(self, driver, selector, by, timeout=20):
         try:
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, selector)))
@@ -176,15 +176,15 @@ class CSVScraper:
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
         try:
-            element = WebDriverWait(driver, 30).until(
+            element = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((by, selector)))
             element.click()
         except NoSuchElementException as e:
             self.logger.warning(f"Element not found for clicking: {selector}")
-            raise NoSuchElementException(f"Element not found: {selector}")
+            raise NoSuchElementException(f"Elemento não encontrado: {selector}")
         except TimeoutException as e:
             self.logger.warning(f"Timeout waiting for element to be clickable: {selector}")
-            raise TimeoutException(f"Element not clickable: {selector}")
+            raise TimeoutException(f"Elemento não clicável: {selector}")
         except Exception as e:
             self.logger.warning(f"Failed to click element {selector}: {e}")
             raise
@@ -201,7 +201,7 @@ class CSVScraper:
                     except Exception as e:
                         self.logger.error(f"Error processing intercepted data: {e}")
                         raise CSVScrapingError(
-                            "Failed to process intercepted data",
+                            "Erro ao processar dados interceptados",
                             {"details": str(e)}
                         )
             time.sleep(1)
@@ -212,7 +212,7 @@ class CSVScraper:
             data = json.loads(json_str)
             if not data:
                 raise CSVScrapingError(
-                    "Empty or invalid JSON data received",
+                    "Recebido JSON vazio ou nulo",
                     {"reason": "Data is empty or null"}
                 )
             
@@ -223,7 +223,7 @@ class CSVScraper:
             
             if not nome or not data.get("vinculos"):
                 raise CSVScrapingError(
-                    "Incomplete professional data received",
+                    "Histórico profissional incompleto",	
                     {"reason": "Missing name or employment history"}
                 )
             
@@ -279,7 +279,7 @@ class CSVScraper:
         except json.JSONDecodeError as e:
             self.logger.error(f"JSON parsing error: {e}")
             raise CSVScrapingError(
-                "Failed to parse JSON data",
+                "Erro ao converter JSON para CSV",
                 {"details": str(e)}
             )
         except CSVScrapingError:
@@ -288,6 +288,6 @@ class CSVScraper:
         except Exception as e:
             self.logger.error(f"Error converting JSON to CSV: {e}")
             raise CSVScrapingError(
-                "Failed to convert JSON to CSV format",
+                "Erro ao converter JSON para CSV",
                 {"details": str(e)}
             )

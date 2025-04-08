@@ -31,27 +31,27 @@ class EstablishmentValidator:
                 
             return valid_cnes
         except DatabaseError:
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    "Database error during establishment validation", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         2, 
+            #         "Database error during establishment validation", 
+            #         100, 
+            #         "error"
+            #     )
             raise
         except Exception as e:
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    f"Error validating establishments: {str(e)}", 
-                    100, 
-                    "error"
-                )
+            # if request_id:
+            #     sse_manager.publish_progress(
+            #         request_id, 
+            #         2, 
+            #         f"Error validating establishments: {str(e)}", 
+            #         100, 
+            #         "error"
+            #     )
             self.logger.error(f"Error in check_establishment: {str(e)}")
             raise EstablishmentValidationError(
-                "Failed to validate establishments",
+                "Erro ao validar estabelecimentos",
                 {"reason": str(e)}
             )
 
@@ -69,7 +69,7 @@ class EstablishmentValidator:
         except Exception as e:
             self.logger.error(f"Error processing CSV entries: {str(e)}")
             raise EstablishmentValidationError(
-                "Failed to process CSV entries",
+                "Erro ao processar dados do histórico",
                 {"reason": str(e)}
             )
 
@@ -161,9 +161,9 @@ class EstablishmentValidator:
                 comp_value=comp_value
             )
         except KeyError as e:
-            raise KeyError(f"Missing required field: {e}")
+            raise KeyError(f"Faltando o campo: {e}")
         except ValueError as e:
-            raise ValueError(f"Invalid value format: {e}")
+            raise ValueError(f"Formato de dado inválido: {e}")
 
     def _should_validate(self, entry, unique_entries):
         return entry.chs_amb >= 10 and (

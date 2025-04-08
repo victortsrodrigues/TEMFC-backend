@@ -44,7 +44,7 @@ class EstablishmentRepository:
                     return None
                         
         except SQLAlchemyError as e:
-            error_message = f"Database error while checking establishment {ibge_cnes}"
+            error_message = f"Erro de banco de dados ao validar estabelecimento {ibge_cnes}"
             self.logger.error(f"{error_message}: {str(e)}")
             raise DatabaseError(
                 error_message,

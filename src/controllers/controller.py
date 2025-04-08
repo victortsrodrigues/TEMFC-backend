@@ -79,7 +79,7 @@ def process_data():
                 field = error['loc'][0]
                 msg = error['msg']
                 errors[field] = msg
-            raise ValidationError("Invalid body", details=errors)
+            raise ValidationError("Dados inválidos", details=errors)
 
         body = {
             "cpf": request_data.cpf,
@@ -123,7 +123,7 @@ def process_data():
                 
                 # Send the final result as an event
                 sse_manager.publish_event(request_id, "result", result)
-                sse_manager.publish_progress(request_id, 3, "Processing completed", 100, "completed")
+                sse_manager.publish_progress(request_id, 3, "Processo concluído!", 100, "completed")
                 
             except BaseError as e:
                 # Send error via SSE
@@ -142,7 +142,7 @@ def process_data():
                 # Send unexpected error via SSE
                 error_msg = f"Processing failed: {str(e)}"
                 sse_manager.publish_event(request_id, "error", {"error": error_msg, "status_code": 500})
-                sse_manager.publish_progress(request_id, 3, "Unexpected error", None, "error")
+                sse_manager.publish_progress(request_id, 3, "Erro inesperado", None, "error")
                 logging.error(f"Unexpected error in async processing: {str(e)}\n{traceback.format_exc()}")
         
         # Start the processing thread
@@ -156,7 +156,7 @@ def process_data():
     
     except Exception as e:
         logging.error(f"Unexpected error in process_data: {str(e)}\n{traceback.format_exc()}")
-        raise BaseError(f"Processing failed: {str(e)}", 500)
+        raise BaseError(f"O processo falhou: {str(e)}", 500)
 
 
 def run_api(host='0.0.0.0', port=5000, debug=False):

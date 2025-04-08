@@ -3,7 +3,6 @@ import logging
 import io
 import time
 
-from pathlib import Path
 from typing import Dict
 from core.models.validation_result import ProfessionalExperienceValidator
 from core.models.row_process_data import RowProcessData
@@ -101,7 +100,7 @@ class DataProcessor:
             self.logger.error(f"Error processing CSV: {e}")
             # Convert all other exceptions to DataProcessingError
             raise DataProcessingError(
-                f"Failed to process CSV data: {str(e)}",
+                f"Erro ao processar o histórico profissional: {str(e)}",
                 {"input": str(body["name"]), "error_type": type(e).__name__},
             )
 
@@ -113,13 +112,13 @@ class DataProcessor:
                 error_msg = f"CSV file missing required columns: {missing}"
                 self.logger.error(error_msg)
                 raise DataProcessingError(
-                    "CSV data format is invalid",
+                    "Formato de dados inválido",
                     {"reason": error_msg, "missing_columns": list(missing)},
                 )
         except TypeError as e:
             error_msg = f"Invalid CSV structure: {e}"
             self.logger.error(error_msg)
-            raise DataProcessingError("CSV structure is invalid", {"reason": error_msg})
+            raise DataProcessingError("Formato de dados inválido", {"reason": error_msg})
 
     def _process_validator(
         self,
