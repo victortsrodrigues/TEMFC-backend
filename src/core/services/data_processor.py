@@ -1,6 +1,8 @@
 import csv
 import logging
 import io
+import time
+
 from pathlib import Path
 from typing import Dict
 from core.models.validation_result import ProfessionalExperienceValidator
@@ -62,50 +64,33 @@ class DataProcessor:
                     sse_manager.publish_progress(
                         request_id, 
                         3, 
-                        "Calculating valid months", 
-                        0, 
+                        "Calculando tempo de atuação válido", 
+                        20, 
                         "in_progress"
                     )
                 
+                time.sleep(2) # Simulate some processing time
+                
                 for i, validator in enumerate(self.VALIDATION_STRATEGIES):
                     # Calculate progress for this step
-                    strategy_progress_base = (i / len(self.VALIDATION_STRATEGIES)) * 80
+                    # strategy_progress_base = (i / len(self.VALIDATION_STRATEGIES)) * 80
                     
-                    if request_id:
-                        validator_name = validator.__class__.__name__.replace("Validator", "")
-                        sse_manager.publish_progress(
-                            request_id, 
-                            3, 
-                            f"Processing {validator_name} records", 
-                            int(strategy_progress_base), 
-                            "in_progress"
-                        )
+                    # if request_id:
+                    #     validator_name = validator.__class__.__name__.replace("Validator", "")
+                    #     sse_manager.publish_progress(
+                    #         request_id, 
+                    #         3, 
+                    #         f"Processing {validator_name} records", 
+                    #         int(strategy_progress_base), 
+                    #         "in_progress"
+                    #     )
                     
                     file.seek(0)
                     csv_reader = csv.DictReader(file, delimiter=";")
                     self._process_validator(validator, csv_reader, result)
             
-            # Finalize processing and update overall results
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    3, 
-                    "Finalizing calculations", 
-                    90, 
-                    "in_progress"
-                )
-            
             self._finalize_processing(result, overall_result, body)
             valid_months = result.calculate_valid_months()
-            
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    3,
-                    f"Calculation complete: {valid_months} valid months",
-                    95,
-                    "in_progress"
-                )
 
             return valid_months
 

@@ -8,9 +8,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from urllib.parse import quote_plus
 from config.settings import settings
 from errors.csv_scraping_error import CSVScrapingError
+from utils.sse_manager import sse_manager
 
 
 class CSVScraper:
@@ -20,10 +23,10 @@ class CSVScraper:
         for option in settings.CHROME_OPTIONS:
             self.options.add_argument(option)
 
-    def get_csv_data(self, body):
-        import chromedriver_autoinstaller
-        chromedriver_autoinstaller.install()
-        driver = webdriver.Chrome(options=self.options)
+    def get_csv_data(self, body, request_id=None):
+        """Retrieve CSV data from CNES based on CPF or name"""
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=self.options)
         
         cpf = body.get("cpf")
         if cpf:
@@ -38,7 +41,7 @@ class CSVScraper:
             if not self._search_by_cpf(driver, cpf):
                 self.logger.info(f"CPF search failed for {cpf}, trying name search")
                 
-                if not self._search_by_name(driver, name):
+                if not self._search_by_name(driver, name, request_id):
                     self.logger.warning(f"Could not find professional - CPF: {cpf}, name: {name}")
                     raise CSVScrapingError(
                         "Professional not found in CNES database",
@@ -88,8 +91,17 @@ class CSVScraper:
             self.logger.warning(f"Error searching by CPF {cpf}: {e}")
             return False
 
-    def _search_by_name(self, driver, name):
+    def _search_by_name(self, driver, name, request_id=None):
         try:
+            if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    1, 
+                    "Histórico não encontro pelo CPF. Tentando busca pelo nome", 
+                    65, 
+                    "in_progress"
+                )
+            
             encoded_name = name.replace(" ", "%20")
             driver.get(f"https://cnes.datasus.gov.br/pages/profissionais/consulta.jsp?search={encoded_name}")
             del driver.requests
@@ -150,7 +162,7 @@ class CSVScraper:
                 {"details": str(e)}
             )
     
-    def _wait_for_element(self, driver, selector, by, timeout=5):
+    def _wait_for_element(self, driver, selector, by, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, selector)))
@@ -164,7 +176,7 @@ class CSVScraper:
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
         try:
-            element = WebDriverWait(driver, 5).until(
+            element = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((by, selector)))
             element.click()
         except NoSuchElementException as e:

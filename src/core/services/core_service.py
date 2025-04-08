@@ -1,4 +1,6 @@
 import logging
+import time
+
 from core.services.data_processor import DataProcessor
 from core.services.establishment_validator import EstablishmentValidator
 from repositories.establishment_repository import EstablishmentRepository
@@ -29,24 +31,26 @@ class Services:
             sse_manager.publish_progress(
                 request_id, 
                 1, 
-                "Starting process", 
+                "Iniciando processamento", 
                 0, 
                 "in_progress"
             )
-        
         # Step 1: Retrieve data from CNES
-        if request_id:
-            sse_manager.publish_progress(
-                request_id, 
-                1, 
-                "Downloading Professional data from CNES website", 
-                10, 
-                "in_progress"
-            )
         csv_input = self._retrieve_data_from_cnes(body, request_id)
         
         # Step 2 & 3: Process data with validator and data processor
         valid_months = self._process_data(csv_input, self._overall_result, body, request_id)
+        
+        if request_id:
+                sse_manager.publish_progress(
+                    request_id, 
+                    3,
+                    "Verificação finalizada com sucesso!",
+                    100,
+                    "completed"
+                )
+        
+        time.sleep(2) # Simulate some processing time
         
         return valid_months
 
@@ -55,16 +59,17 @@ class Services:
     
     def _retrieve_data_from_cnes(self, body, request_id=None):
         try:
+            # Step 1: Retrieve data from CNES
             if request_id:
                 sse_manager.publish_progress(
                     request_id, 
                     1, 
-                    "Accessing CNES database", 
-                    20, 
+                    "Acessando histórico profissional no CNES", 
+                    35, 
                     "in_progress"
                 )
             
-            csv_input = self.csv_scraper.get_csv_data(body)
+            csv_input = self.csv_scraper.get_csv_data(body, request_id)
 
             if not csv_input:
                 if request_id:
@@ -81,11 +86,11 @@ class Services:
                 sse_manager.publish_progress(
                     request_id, 
                     1, 
-                    "Professional data downloaded successfully", 
+                    "Histórico profissional acessado com sucesso!", 
                     100, 
                     "completed"
                 )
-            
+                        
             return csv_input
 
         except CSVScrapingError as e:
@@ -125,8 +130,8 @@ class Services:
                 sse_manager.publish_progress(
                     request_id, 
                     2, 
-                    "Checking the validity of establishments", 
-                    0, 
+                    "Verificando atuação em APS", 
+                    30, 
                     "in_progress"
                 )
             

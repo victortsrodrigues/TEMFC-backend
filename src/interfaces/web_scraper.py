@@ -3,6 +3,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from urllib.parse import quote_plus
 from config.settings import settings
 from errors.establishment_scraping_error import ScrapingError
@@ -16,9 +18,8 @@ class CNESScraper:
             self.options.add_argument(option)
 
     def validate_online(self, cnes, establishment_name):
-        import chromedriver_autoinstaller
-        chromedriver_autoinstaller.install()
-        driver = webdriver.Chrome(options=self.options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=self.options)
         try:
             if not self._search_by_cnes(driver, cnes):
                 self.logger.info(f"CNES search failed for {cnes}, trying name search")
@@ -113,7 +114,7 @@ class CNESScraper:
             return False
     
     
-    def _wait_for_element(self, driver, selector, by, timeout=5):
+    def _wait_for_element(self, driver, selector, by, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, selector)))
@@ -128,11 +129,15 @@ class CNESScraper:
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
         try:    
-            element = driver.find_element(by, selector)
+            element = WebDriverWait(driver, 30).until(
+            EC.element_to_be_clickable((by, selector)))
             element.click()
         except NoSuchElementException as e:
             self.logger.warning(f"Element not found for clicking: {selector}")
             raise NoSuchElementException(f"Element not found: {selector}")
+        except TimeoutException as e:
+            self.logger.warning(f"Timeout waiting for element to be clickable: {selector}")
+            raise TimeoutException(f"Element not clickable: {selector}")
         except Exception as e:
             self.logger.warning(f"Failed to click element {selector}: {e}")
             raise

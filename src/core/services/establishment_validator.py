@@ -13,36 +13,10 @@ class EstablishmentValidator:
         self.logger = logging.getLogger(__name__)
 
     def check_establishment(self, csv_reader, request_id=None):
-        try:
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    "Extracting unique establishments from data", 
-                    10, 
-                    "in_progress"
-                )
-                
+        try:              
             unique_entries = self._get_unique_entries(csv_reader)
             if not unique_entries:
                 self.logger.warning("No valid unique entries found in CSV data")
-                if request_id:
-                    sse_manager.publish_progress(
-                        request_id, 
-                        2, 
-                        "No valid establishments found in data", 
-                        20, 
-                        "in_progress"
-                    )
-            
-            if request_id:
-                sse_manager.publish_progress(
-                    request_id, 
-                    2, 
-                    f"Found {len(unique_entries)} unique establishments to validate", 
-                    30, 
-                    "in_progress"
-                )
             
             valid_cnes = self._get_valid_cnes(unique_entries, request_id)
             
@@ -50,7 +24,7 @@ class EstablishmentValidator:
                 sse_manager.publish_progress(
                     request_id, 
                     2, 
-                    f"Validated {len(valid_cnes)} establishments successfully", 
+                    f"Validados {len(valid_cnes)} estabelecimentos com sucesso", 
                     100, 
                     "completed"
                 )
@@ -110,35 +84,17 @@ class EstablishmentValidator:
             
             if entry.cnes not in valid_cnes:
                 try:
-                    if request_id:
-                        sse_manager.publish_progress(
-                            request_id, 
-                            2, 
-                            f"Validating establishment: {entry.name} (CNES: {entry.cnes})", 
-                            progress_percentage, 
-                            "in_progress"
-                        )
-                        
-                    # Check establishment in database first
                     db_result = self._validate_with_repo(entry)
                     
                     if db_result is True:
                         valid_cnes.append(entry.cnes)
-                        if request_id:
-                            sse_manager.publish_progress(
-                                request_id, 
-                                2, 
-                                f"Validated {entry.name} (CNES: {entry.cnes}) from database", 
-                                progress_percentage, 
-                                "in_progress"
-                            )
                     elif db_result is None:
                         # Not found in database, try online validation
                         if request_id:
                             sse_manager.publish_progress(
                                 request_id, 
                                 2, 
-                                f"Not found in database. Validating {entry.name} (CNES: {entry.cnes}) online", 
+                                "Verificando validade de estabelecimentos no CNES", 
                                 progress_percentage, 
                                 "in_progress"
                             )
