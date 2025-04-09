@@ -11,8 +11,6 @@ class ValidateSchema(BaseModel):
         cleaned_cpf = re.sub(r'\D', '', v)
         if len(cleaned_cpf) != 11:
             raise ValueError('CPF must have exactly 11 digits')
-        if len(set(cleaned_cpf)) == 1:
-            raise ValueError('Invalid CPF (all digits are identical)')
         return cleaned_cpf
 
     @field_validator('name')

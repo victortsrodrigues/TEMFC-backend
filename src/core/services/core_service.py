@@ -112,7 +112,7 @@ class Services:
             #         "error"
             #     )
             raise NotFoundError(
-                "Erro ao acessar o histórico profissional no CNES",
+                "Profissional não encontrado no CNES",
                 {"source": "data_retrieval", "details": e.details}
             )
         except Exception as e:

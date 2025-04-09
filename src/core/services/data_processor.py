@@ -100,7 +100,7 @@ class DataProcessor:
             self.logger.error(f"Error processing CSV: {e}")
             # Convert all other exceptions to DataProcessingError
             raise DataProcessingError(
-                f"Erro ao processar o histórico profissional: {str(e)}",
+                "Erro ao processar o histórico profissional.",
                 {"input": str(body["name"]), "error_type": type(e).__name__},
             )
 
