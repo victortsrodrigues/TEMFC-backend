@@ -22,6 +22,15 @@ services = Services()
 # Error handler for API errors
 @app.errorhandler(BaseError)
 def handle_api_error(error):
+    """
+    Handle custom API errors.
+
+    Args:
+        error: The BaseError instance.
+
+    Returns:
+        Response: JSON response with error details and status code.
+    """
     response = {
         "error": error.message,
         "status_code": error.status_code
@@ -34,6 +43,15 @@ def handle_api_error(error):
 # Error handler for HTTP exceptions
 @app.errorhandler(HTTPException)
 def handle_http_exception(error):
+    """
+    Handle HTTP exceptions.
+
+    Args:
+        error: The HTTPException instance.
+
+    Returns:
+        Response: JSON response with error details and status code.
+    """
     response = {
         "error": error.description,
         "status_code": error.code
@@ -44,14 +62,24 @@ def handle_http_exception(error):
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Simple health check endpoint"""
+    """
+    Health check endpoint to verify the API is running.
+
+    Returns:
+        Response: JSON response with health status.
+    """
     return jsonify({"status": "healthy"}), 200
 
 
 # SSE connection endpoint
 @app.route('/events', methods=['GET'])
 def events():
-    """SSE endpoint to stream progress events to the client"""
+    """
+    SSE endpoint to stream progress events to the client.
+
+    Returns:
+        Response: Flask response object with the event stream.
+    """
     # Get the request_id from the query string, or create a new one
     request_id = request.args.get('request_id')
     
@@ -68,7 +96,12 @@ def events():
 # Main processing endpoint
 @app.route('/', methods=['POST'])
 def process_data():
-    """Process data from CPF and name"""
+    """
+    Main endpoint to process professional data based on CPF and name.
+
+    Returns:
+        Response: JSON response with request ID and processing status.
+    """
     try:
         # Validação com Pydantic
         try:
@@ -160,5 +193,12 @@ def process_data():
 
 
 def run_api(host='0.0.0.0', port=5000, debug=False):
-    """Run the Flask API server"""
+    """
+    Run the Flask API server.
+
+    Args:
+        host: Host address to bind the server.
+        port: Port number to run the server.
+        debug: Whether to run the server in debug mode.
+    """
     app.run(host=host, port=port, debug=debug)

@@ -5,23 +5,27 @@ from sqlalchemy.exc import SQLAlchemyError
 from errors.database_error import DatabaseError
 
 class EstablishmentRepository:
+    """Repository for handling establishment-related database operations."""
+
     def __init__(self):
+        """Initializes the repository with a logger."""
         self.logger = logging.getLogger(__name__)
     
     def check_establishment(self, ibge_cnes):
         """
-        Check if an establishment exists and has specific services
-        
+        Checks if an establishment exists and has specific services.
+
         Args:
-            ibge_cnes: Combined IBGE and CNES identifier
-            
+            ibge_cnes (str): Combined IBGE and CNES identifier.
+
         Returns:
-            True: If establishment exists and has service codes 159 or 152
-            False: If establishment exists but doesn't have those services
-            None: If establishment doesn't exist in database
-            
+            bool or None: 
+                - True if the establishment exists and has service codes 159 or 152.
+                - False if the establishment exists but doesn't have those services.
+                - None if the establishment doesn't exist in the database.
+
         Raises:
-            DatabaseError: If there's a database connection or query error
+            DatabaseError: If there's a database connection or query error.
         """
         try:
             with settings.engine.connect() as conn:
@@ -44,7 +48,7 @@ class EstablishmentRepository:
                     return None
                         
         except SQLAlchemyError as e:
-            error_message = f"Erro de banco de dados ao validar estabelecimento {ibge_cnes}"
+            error_message = "Erro de banco de dados ao validar estabelecimento"
             self.logger.error(f"{error_message}: {str(e)}")
             raise DatabaseError(
                 error_message,

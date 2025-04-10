@@ -1,6 +1,9 @@
 from datetime import datetime
 
-class DateParser:        
+class DateParser:
+    """
+    Utility class for parsing and formatting date strings.
+    """
     @staticmethod
     def format_yyyymm_to_mm_yyyy(date_str: str) -> str:
         """
@@ -22,6 +25,6 @@ class DateParser:
         month = date_str[4:]
         
         if not (1 <= int(month) <= 12):
-            raise ValueError(f"Mês inválido: {date_str}")
+            raise ValueError(f"Formato de data inválido: {date_str}")
         
         return f"{month}/{year}"

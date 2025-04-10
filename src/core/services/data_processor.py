@@ -14,9 +14,16 @@ from utils.date_parser import DateParser
 from utils.cbo_checker import CBOChecker
 from utils.sse_manager import sse_manager
 from errors.data_processing_error import DataProcessingError
+from errors.establishment_scraping_error import ScrapingError
+from errors.database_error import DatabaseError
+from errors.establishment_validator_error import EstablishmentValidationError
 
 
 class DataProcessor:
+    """
+    Processes CSV data and validates professional experience using various strategies.
+    """
+
     VALIDATION_STRATEGIES = [
         Range40Validator(),
         Range30Validator(),
@@ -34,10 +41,31 @@ class DataProcessor:
     }
 
     def __init__(self, establishment_validator):
+        """
+        Initialize the DataProcessor with an establishment validator.
+
+        Args:
+            establishment_validator: Validator to check establishment validity.
+        """
         self.establishment_validator = establishment_validator
         self.logger = logging.getLogger(__name__)
 
     def process_csv(self, csv_input, overall_result: Dict, body: Dict, request_id=None) -> float:
+        """
+        Process a CSV file containing professional experience data.
+
+        Args:
+            csv_input: The input CSV data as a string or file-like object.
+            overall_result (Dict): Dictionary to store overall processing results.
+            body (Dict): Request body containing metadata like name and CPF.
+            request_id: Optional request ID for tracking progress.
+
+        Returns:
+            float: The number of valid months of professional experience.
+
+        Raises:
+            DataProcessingError: If an error occurs during processing.
+        """
         try:
             result = ProfessionalExperienceValidator()
             result.file_path = "in-memory-data"
@@ -70,20 +98,7 @@ class DataProcessor:
                 
                 time.sleep(2) # Simulate some processing time
                 
-                for i, validator in enumerate(self.VALIDATION_STRATEGIES):
-                    # Calculate progress for this step
-                    # strategy_progress_base = (i / len(self.VALIDATION_STRATEGIES)) * 80
-                    
-                    # if request_id:
-                    #     validator_name = validator.__class__.__name__.replace("Validator", "")
-                    #     sse_manager.publish_progress(
-                    #         request_id, 
-                    #         3, 
-                    #         f"Processing {validator_name} records", 
-                    #         int(strategy_progress_base), 
-                    #         "in_progress"
-                    #     )
-                    
+                for i, validator in enumerate(self.VALIDATION_STRATEGIES):                    
                     file.seek(0)
                     csv_reader = csv.DictReader(file, delimiter=";")
                     self._process_validator(validator, csv_reader, result)
@@ -92,20 +107,35 @@ class DataProcessor:
             valid_months = result.calculate_valid_months()
 
             return valid_months
-
+        
+        except DatabaseError:
+            raise
+        except ScrapingError:
+            raise
+        except EstablishmentValidationError:
+            raise
         except DataProcessingError:
-            # Re-raise DataProcessingError exceptions
             raise
         except Exception as e:
             self.logger.error(f"Error processing CSV: {e}")
-            # Convert all other exceptions to DataProcessingError
             raise DataProcessingError(
                 "Erro ao processar o histórico profissional.",
                 {"input": str(body["name"]), "error_type": type(e).__name__},
             )
 
     def _validate_columns(self, fieldnames) -> bool:
-        """Validate CSV contains all required columns"""
+        """
+        Validate that the CSV contains all required columns.
+
+        Args:
+            fieldnames: List of column names in the CSV.
+
+        Returns:
+            bool: True if validation passes, otherwise raises an exception.
+
+        Raises:
+            DataProcessingError: If required columns are missing or invalid.
+        """
         try:
             if not fieldnames or not self.REQUIRED_COLUMNS.issubset(fieldnames):
                 missing = self.REQUIRED_COLUMNS - set(fieldnames)
@@ -126,6 +156,14 @@ class DataProcessor:
         csv_reader: csv.DictReader,
         result: ProfessionalExperienceValidator,
     ) -> None:
+        """
+        Process rows in the CSV using a specific validation strategy.
+
+        Args:
+            validator: The validation strategy to apply.
+            csv_reader (csv.DictReader): Reader object for the CSV data.
+            result (ProfessionalExperienceValidator): Object to store validation results.
+        """
         for row in csv_reader:
             try:
 
@@ -155,6 +193,17 @@ class DataProcessor:
     def _is_valid_row(
         self, establishment: RowProcessData, valid_cnes: list, chs_threshold: int
     ) -> bool:
+        """
+        Check if a row is valid based on thresholds and CBO terms.
+
+        Args:
+            establishment (RowProcessData): Data for the current row.
+            valid_cnes (list): List of valid CNES codes.
+            chs_threshold (int): Minimum CHS threshold for validation.
+
+        Returns:
+            bool: True if the row is valid, False otherwise.
+        """
         if establishment.chs_amb < chs_threshold:
             return False
 
@@ -174,6 +223,14 @@ class DataProcessor:
         overall_result: Dict,
         body: Dict,
     ) -> None:
+        """
+        Finalize processing by sorting rows and updating the overall result.
+
+        Args:
+            result (ProfessionalExperienceValidator): Validation results.
+            overall_result (Dict): Dictionary to store overall processing results.
+            body (Dict): Request body containing metadata like name and CPF.
+        """
         result.valid_rows.sort(
             key=lambda x: DateParser.format_yyyymm_to_mm_yyyy(x["COMP."]), reverse=True
         )

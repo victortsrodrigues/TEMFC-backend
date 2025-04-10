@@ -11,13 +11,33 @@ from errors.establishment_scraping_error import ScrapingError
 import logging
 
 class CNESScraper:
+    """
+    Scraper for validating CNES establishments using the CNES Datasus website.
+    """
+
     def __init__(self):
+        """
+        Initialize the scraper with Chrome WebDriver options.
+        """
         self.logger = logging.getLogger(__name__)
         self.options = webdriver.ChromeOptions()
         for option in settings.CHROME_OPTIONS:
             self.options.add_argument(option)
 
     def validate_online(self, cnes, establishment_name):
+        """
+        Validate an establishment online by CNES or name.
+
+        Args:
+            cnes: CNES code of the establishment.
+            establishment_name: Name of the establishment.
+
+        Returns:
+            bool: True if the establishment is valid, False otherwise.
+
+        Raises:
+            ScrapingError: If an error occurs during validation.
+        """
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=self.options)
         try:
@@ -65,15 +85,35 @@ class CNESScraper:
 
 
     def _search_by_cnes(self, driver, cnes):
+        """
+        Search for an establishment by CNES code.
+
+        Args:
+            driver: Selenium WebDriver instance.
+            cnes: CNES code of the establishment.
+
+        Returns:
+            bool: True if the establishment is found, False otherwise.
+        """
         try:
             driver.get(f"https://cnes.datasus.gov.br/pages/estabelecimentos/consulta.jsp?search={cnes}")
             return self._wait_for_element(driver, "body > div.layout > main > div > div.col-md-12.ng-scope > div > div:nth-child(9) > table > tbody > tr > td:nth-child(8) > a > span", By.CSS_SELECTOR)
-        except Exception as e:
+        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
             self.logger.error(f"Error searching by CNES: {e}")
             return False
 
 
     def _search_by_name(self, driver, name):
+        """
+        Search for an establishment by name.
+
+        Args:
+            driver: Selenium WebDriver instance.
+            name: Name of the establishment.
+
+        Returns:
+            bool: True if the establishment is found, False otherwise.
+        """
         try:
             encoded_name = quote_plus(name)
             driver.get(f"https://cnes.datasus.gov.br/pages/estabelecimentos/consulta.jsp?search={encoded_name}")
@@ -84,21 +124,39 @@ class CNESScraper:
 
 
     def _check_services(self, driver):
+        """
+        Check if the establishment provides specific services.
+
+        Args:
+            driver: Selenium WebDriver instance.
+
+        Returns:
+            bool: True if the required services are found, False otherwise.
+        """
         try:
             self._click_element(driver, "body > div.layout > main > div > div.col-md-12.ng-scope > div > div:nth-child(9) > table > tbody > tr > td:nth-child(8) > a > span")
             if not self._wait_for_element(driver, "Conjunto", By.LINK_TEXT, 5):
                 self.logger.warning("Failed to find 'Conjunto' link")
-                return False
+                raise ScrapingError(
+                    "Link 'Conjunto' não encontrado na página do estabelecimento",
+                    {"details": "Element not found: 'Conjunto' link"}
+                )
             
             self._click_element(driver, "Conjunto", By.LINK_TEXT)
             if not self._wait_for_element(driver, "#estabContent > aside > section > ul > li.treeview.active > ul > li:nth-child(1)", By.CSS_SELECTOR, 5):
                 self.logger.warning("Failed to find 'Serviços' link")
-                return False
+                raise ScrapingError(
+                    "Link 'Serviços' não encontrado na página do estabelecimento",
+                    {"details": "Element not found: 'Serviços' link"}
+                )
             
             self._click_element(driver, "#estabContent > aside > section > ul > li.treeview.active > ul > li:nth-child(1)")
             if not self._wait_for_element(driver, "//table[@ng-table='tableParamsServicosEspecializados']", By.XPATH, 5):
                 self.logger.warning("Failed to find 'Serviços' table")
-                return False
+                raise ScrapingError(
+                    "Tabela de serviços não encontrada na página do estabelecimento",
+                    {"details": "Element not found: 'Serviços' table"}
+                )
             
             rows = driver.find_elements(By.XPATH, "//table[@ng-table='tableParamsServicosEspecializados']//tbody//tr")
             for row in rows:
@@ -106,28 +164,59 @@ class CNESScraper:
                 if code in ["159", "152"]:
                     return True
             return False
+        
         except NoSuchElementException as e:
             self.logger.warning(f"Element not found during service check: {e}")
-            return False
+            raise ScrapingError(
+                "Elemento não encontrado durante verificação de serviços",
+                {"details": str(e)}
+            )
         except Exception as e:
             self.logger.warning(f"Service check failed: {e}")
-            return False
+            raise ScrapingError(
+                "Falha na verificação de serviços do estabelecimento",
+                {"details": str(e)}
+            )
     
     
     def _wait_for_element(self, driver, selector, by, timeout=30):
+        """
+        Wait for an element to be present on the page.
+
+        Args:
+            driver: Selenium WebDriver instance.
+            selector: Selector for the element.
+            by: Type of selector (e.g., By.CSS_SELECTOR).
+            timeout: Maximum wait time in seconds.
+
+        Returns:
+            bool: True if the element is found, False otherwise.
+        """
         try:
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, selector)))
             return True
         except TimeoutException as e:
             self.logger.debug(f"Timeout waiting for element {selector}: {e}")
-            return False
+            raise TimeoutException(f"Timeout esperando pelo elemento: {selector}")
         except Exception as e:
             self.logger.debug(f"Error waiting for element {selector}: {e}")
-            return False
+            raise
 
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
+        """
+        Click an element on the page.
+
+        Args:
+            driver: Selenium WebDriver instance.
+            selector: Selector for the element.
+            by: Type of selector (e.g., By.CSS_SELECTOR).
+
+        Raises:
+            NoSuchElementException: If the element is not found.
+            TimeoutException: If the element is not clickable.
+        """
         try:    
             element = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((by, selector)))

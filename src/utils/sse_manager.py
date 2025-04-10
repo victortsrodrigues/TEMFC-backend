@@ -7,22 +7,29 @@ from flask import Response
 
 class SSEManager:
     """
-    Manages Server-Sent Events for the application.
-    Provides methods to create event streams and publish events to clients.
+    Manages Server-Sent Events (SSE) for real-time communication with clients.
     """
+
     def __init__(self):
+        """
+        Initialize the SSEManager instance.
+
+        Attributes:
+            clients (dict): Store active client connections.
+            logger (Logger): Logger instance for logging events.
+        """
         self.clients = {}  # Store active client connections
         self.logger = logging.getLogger(__name__)
 
     def create_client(self, request_id=None):
         """
-        Create a new SSE client with a unique ID
-        
+        Create a new SSE client with a unique ID.
+
         Args:
-            request_id: Optional request identifier
-            
+            request_id: Optional request identifier.
+
         Returns:
-            str: Client ID that can be used to publish events
+            str: Client ID that can be used to publish events.
         """
         client_id = request_id or str(uuid.uuid4())
         self.clients[client_id] = Queue()
@@ -31,10 +38,10 @@ class SSEManager:
     
     def remove_client(self, client_id):
         """
-        Remove a client by ID
-        
+        Remove a client by ID.
+
         Args:
-            client_id: The ID of the client to remove
+            client_id: The ID of the client to remove.
         """
         if client_id in self.clients:
             del self.clients[client_id]
@@ -42,13 +49,13 @@ class SSEManager:
     
     def publish_event(self, client_id, event_type, data, retry=None):
         """
-        Publish an event to a specific client
-        
+        Publish an event to a specific client.
+
         Args:
-            client_id: The ID of the client to send the event to
-            event_type: The type of the event
-            data: The data to send
-            retry: Optional retry interval in milliseconds
+            client_id: The ID of the client to send the event to.
+            event_type: The type of the event.
+            data: The data to send.
+            retry: Optional retry interval in milliseconds.
         """
         if client_id not in self.clients:
             self.logger.warning(f"Attempted to publish to non-existent client: {client_id}")
@@ -78,14 +85,14 @@ class SSEManager:
     
     def publish_progress(self, client_id, step, message, percentage=None, status="in_progress"):
         """
-        Publish a progress update event
-        
+        Publish a progress update event.
+
         Args:
-            client_id: The ID of the client to send the event to
-            step: The current processing step (1, 2, or 3)
-            message: A description of the current activity
-            percentage: Optional completion percentage (0-100)
-            status: Status of the step (in_progress, completed, error)
+            client_id: The ID of the client to send the event to.
+            step: The current processing step (1, 2, or 3).
+            message: A description of the current activity.
+            percentage: Optional completion percentage (0-100).
+            status: Status of the step (in_progress, completed, error).
         """
         data = {
             "step": step,
@@ -100,13 +107,13 @@ class SSEManager:
     
     def stream(self, client_id):
         """
-        Generate the SSE stream for a client
-        
+        Generate the SSE stream for a client.
+
         Args:
-            client_id: The ID of the client to stream to
-            
+            client_id: The ID of the client to stream to.
+
         Returns:
-            Response: A Flask response object with the event stream
+            Response: A Flask response object with the event stream.
         """
         def generate():
             try:

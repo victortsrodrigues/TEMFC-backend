@@ -49,23 +49,11 @@ class CSVScraper:
                     )
             return self._intercept_data(driver)
         
-        except TimeoutException as e:
-            self.logger.error(f"Timeout during CSV scraping for CPF {body.get('cpf')}: {e}")
+        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
+            self.logger.error(f"Error during CSV scraping for CPF {cpf}: {e}")
             raise CSVScrapingError(
-                "Operação de busca de dados demorou mais do que o esperado",
-                {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
-            )
-        except NoSuchElementException as e:
-            self.logger.error(f"Element not found for CPF {body.get('cpf')}: {e}")
-            raise CSVScrapingError(
-                "Elemento não encontrado durante a busca de dados",
-                {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
-            )
-        except WebDriverException as e:
-            self.logger.error(f"WebDriver error for CPF {body.get('cpf')}: {e}")
-            raise CSVScrapingError(
-                "Erro ao acessar o site do CNES",
-                {"cpf": body.get("cpf"), "name": body.get("name"), "details": str(e)}
+                "Erro durante a busca de dados",
+                {"cpf": cpf, "name": name, "details": str(e)}
             )
         except CSVScrapingError:
             raise
@@ -169,10 +157,10 @@ class CSVScraper:
             return True
         except TimeoutException as e:
             self.logger.debug(f"Timeout waiting for element {selector}: {e}")
-            return False
+            raise TimeoutException(f"Timeout esperando pelo elemento: {selector}")
         except Exception as e:
             self.logger.debug(f"Error waiting for element {selector}: {e}")
-            return False
+            raise
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
         try:

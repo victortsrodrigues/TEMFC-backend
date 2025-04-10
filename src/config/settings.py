@@ -8,12 +8,21 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Settings:
+    """
+    Manages application configuration settings, including database and directories.
+    """
+
     def __init__(self):
+        """
+        Initialize the Settings object and load configuration values.
+        """
         self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
         self.reload()
     
     def reload(self):
-        
+        """
+        Reload configuration values from environment variables.
+        """
         # PostgreSQL configuration
         self.DB_CONFIG = {
             "host": os.getenv("DB_HOST"),

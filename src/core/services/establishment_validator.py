@@ -3,16 +3,47 @@ from core.models.row_process_data import RowProcessData
 from utils.date_parser import DateParser
 from errors.establishment_validator_error import EstablishmentValidationError
 from errors.database_error import DatabaseError
+from errors.establishment_scraping_error import ScrapingError
 from utils.sse_manager import sse_manager
 import logging
 
 class EstablishmentValidator:
+    """
+    Service for validating establishments using database and online resources.
+
+    Attributes:
+        repo: Repository for database operations.
+        scraper: Scraper for online validation.
+        logger: Logger for logging validation activities.
+    """
+
     def __init__(self, repo, scraper):
+        """
+        Initializes the validator with a repository and scraper.
+
+        Args:
+            repo: Repository for database operations.
+            scraper: Scraper for online validation.
+        """
         self.repo = repo
         self.scraper = scraper
         self.logger = logging.getLogger(__name__)
 
     def check_establishment(self, csv_reader, request_id=None):
+        """
+        Validates establishments based on CSV data.
+
+        Args:
+            csv_reader: CSV reader object containing establishment data.
+            request_id (str, optional): Request ID for progress tracking.
+
+        Returns:
+            list: List of valid CNES identifiers.
+
+        Raises:
+            EstablishmentValidationError: If validation fails.
+            DatabaseError: If a database error occurs.
+        """
         try:              
             unique_entries = self._get_unique_entries(csv_reader)
             if not unique_entries:
@@ -30,25 +61,14 @@ class EstablishmentValidator:
                 )
                 
             return valid_cnes
+        
+        except EstablishmentValidationError:
+            raise
         except DatabaseError:
-            # if request_id:
-            #     sse_manager.publish_progress(
-            #         request_id, 
-            #         2, 
-            #         "Database error during establishment validation", 
-            #         100, 
-            #         "error"
-            #     )
+            raise
+        except ScrapingError:
             raise
         except Exception as e:
-            # if request_id:
-            #     sse_manager.publish_progress(
-            #         request_id, 
-            #         2, 
-            #         f"Error validating establishments: {str(e)}", 
-            #         100, 
-            #         "error"
-            #     )
             self.logger.error(f"Error in check_establishment: {str(e)}")
             raise EstablishmentValidationError(
                 "Erro ao validar estabelecimentos",
@@ -56,6 +76,18 @@ class EstablishmentValidator:
             )
 
     def _get_unique_entries(self, csv_reader):
+        """
+        Extracts unique entries from the CSV data.
+
+        Args:
+            csv_reader: CSV reader object containing establishment data.
+
+        Returns:
+            list: List of unique RowProcessData entries.
+
+        Raises:
+            EstablishmentValidationError: If processing fails.
+        """
         unique_entries = []
         try:
             for line in csv_reader:
@@ -74,6 +106,19 @@ class EstablishmentValidator:
             )
 
     def _get_valid_cnes(self, unique_entries, request_id=None):
+        """
+        Validates CNES identifiers from unique entries.
+
+        Args:
+            unique_entries (list): List of unique RowProcessData entries.
+            request_id (str, optional): Request ID for progress tracking.
+
+        Returns:
+            list: List of valid CNES identifiers.
+
+        Raises:
+            DatabaseError: If a database error occurs.
+        """
         valid_cnes = []
         validation_errors = []
         total_entries = len(unique_entries)
@@ -89,7 +134,6 @@ class EstablishmentValidator:
                     if db_result is True:
                         valid_cnes.append(entry.cnes)
                     elif db_result is None:
-                        # Not found in database, try online validation
                         if request_id:
                             sse_manager.publish_progress(
                                 request_id, 
@@ -110,6 +154,8 @@ class EstablishmentValidator:
                             progress_percentage, 
                             "in_progress"
                         )
+                    raise
+                except ScrapingError:
                     raise
                 except Exception as e:
                     validation_errors.append({
@@ -135,16 +181,45 @@ class EstablishmentValidator:
 
     
     def _validate_with_repo(self, entry):
+        """
+        Validates an entry using the repository.
+
+        Args:
+            entry (RowProcessData): Entry to validate.
+
+        Returns:
+            bool or None: Validation result from the repository.
+        """
         return self.repo.check_establishment(entry.ibge + entry.cnes)
     
     
     def _validate_online(self, entry, valid_cnes):
+        """
+        Validates an entry using online resources.
+
+        Args:
+            entry (RowProcessData): Entry to validate.
+            valid_cnes (list): List of valid CNES identifiers to update.
+        """
         online_validation_success = self.scraper.validate_online(entry.cnes, entry.name)
         if online_validation_success:
             valid_cnes.append(entry.cnes)
     
     
     def _create_entry(self, line) -> RowProcessData:
+        """
+        Creates a RowProcessData object from a CSV line.
+
+        Args:
+            line (dict): Dictionary representing a CSV row.
+
+        Returns:
+            RowProcessData: Parsed data object.
+
+        Raises:
+            KeyError: If a required field is missing.
+            ValueError: If a field has an invalid format.
+        """
         try:
             cnes = line["CNES"]
             while len(cnes) < 7:
@@ -162,10 +237,20 @@ class EstablishmentValidator:
             )
         except KeyError as e:
             raise KeyError(f"Faltando o campo: {e}")
-        except ValueError as e:
-            raise ValueError(f"Formato de dado inválido: {e}")
+        except ValueError:
+            raise ValueError
 
     def _should_validate(self, entry, unique_entries):
+        """
+        Determines if an entry should be validated.
+
+        Args:
+            entry (RowProcessData): Entry to check.
+            unique_entries (list): List of already processed entries.
+
+        Returns:
+            bool: True if the entry should be validated, False otherwise.
+        """
         return entry.chs_amb >= 10 and (
             CBOChecker.contains_clinico_terms(entry.cbo_desc) or 
             CBOChecker.contains_generalista_terms(entry.cbo_desc)
