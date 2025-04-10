@@ -10,13 +10,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
-from urllib.parse import quote_plus
 from config.settings import settings
 from errors.csv_scraping_error import CSVScrapingError
 from utils.sse_manager import sse_manager
 
 
 class CSVScraper:
+    TIMEOUT_DEFAULT = 20
+    MAX_QUANT_BUTTONS = 1
+    
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.options = webdriver.ChromeOptions()
@@ -97,7 +99,7 @@ class CSVScraper:
             if found:
                 # Check the number of buttons
                 buttons = driver.find_elements(By.CSS_SELECTOR, "button.btn.btn-default[ng-click*='historicoProfissional']")
-                if len(buttons) > 1:
+                if len(buttons) > self.MAX_QUANT_BUTTONS:
                     self.logger.warning(f"Multiple professionals found for name: {name}")
                     raise CSVScrapingError(
                         "Múltiplos profissionais encontrados para o nome fornecido",
@@ -112,7 +114,7 @@ class CSVScraper:
     def _intercept_data(self, driver):
         try:
             self._click_element(driver, "button.btn.btn-default[ng-click*='historicoProfissional']")
-            if not self._wait_for_element(driver, "button.btn.btn-primary[ng-csv='getHistoricoProfissional()']", By.CSS_SELECTOR, 5):
+            if not self._wait_for_element(driver, "button.btn.btn-primary[ng-csv='getHistoricoProfissional()']", By.CSS_SELECTOR):
                 self.logger.warning("CSV export button not found")
                 raise CSVScrapingError(
                     "Funcionalidade de exportar o histórico não encontrada",
@@ -150,9 +152,9 @@ class CSVScraper:
                 {"details": str(e)}
             )
     
-    def _wait_for_element(self, driver, selector, by, timeout=20):
+    def _wait_for_element(self, driver, selector, by):
         try:
-            WebDriverWait(driver, timeout).until(
+            WebDriverWait(driver, self.TIMEOUT_DEFAULT).until(
                 EC.presence_of_element_located((by, selector)))
             return True
         except TimeoutException as e:
@@ -164,7 +166,7 @@ class CSVScraper:
 
     def _click_element(self, driver, selector, by=By.CSS_SELECTOR):
         try:
-            element = WebDriverWait(driver, 20).until(
+            element = WebDriverWait(driver, self.TIMEOUT_DEFAULT).until(
             EC.element_to_be_clickable((by, selector)))
             element.click()
         except NoSuchElementException as e:
@@ -177,9 +179,9 @@ class CSVScraper:
             self.logger.warning(f"Failed to click element {selector}: {e}")
             raise
         
-    def _wait_for_intercepted_data(self, driver, timeout=10):
+    def _wait_for_intercepted_data(self, driver):
         start_time = time.time()
-        while time.time() - start_time < timeout:
+        while time.time() - start_time < self.TIMEOUT_DEFAULT:
             for request in driver.requests:
                 if request.response and "historico-profissional" in request.url:
                     try:

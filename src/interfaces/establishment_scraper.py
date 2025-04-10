@@ -14,6 +14,8 @@ class CNESScraper:
     """
     Scraper for validating CNES establishments using the CNES Datasus website.
     """
+    
+    TIMEOUT_DEFAULT = 20
 
     def __init__(self):
         """
@@ -135,7 +137,7 @@ class CNESScraper:
         """
         try:
             self._click_element(driver, "body > div.layout > main > div > div.col-md-12.ng-scope > div > div:nth-child(9) > table > tbody > tr > td:nth-child(8) > a > span")
-            if not self._wait_for_element(driver, "Conjunto", By.LINK_TEXT, 5):
+            if not self._wait_for_element(driver, "Conjunto", By.LINK_TEXT):
                 self.logger.warning("Failed to find 'Conjunto' link")
                 raise ScrapingError(
                     "Link 'Conjunto' não encontrado na página do estabelecimento",
@@ -143,7 +145,7 @@ class CNESScraper:
                 )
             
             self._click_element(driver, "Conjunto", By.LINK_TEXT)
-            if not self._wait_for_element(driver, "#estabContent > aside > section > ul > li.treeview.active > ul > li:nth-child(1)", By.CSS_SELECTOR, 5):
+            if not self._wait_for_element(driver, "#estabContent > aside > section > ul > li.treeview.active > ul > li:nth-child(1)", By.CSS_SELECTOR):
                 self.logger.warning("Failed to find 'Serviços' link")
                 raise ScrapingError(
                     "Link 'Serviços' não encontrado na página do estabelecimento",
@@ -151,7 +153,7 @@ class CNESScraper:
                 )
             
             self._click_element(driver, "#estabContent > aside > section > ul > li.treeview.active > ul > li:nth-child(1)")
-            if not self._wait_for_element(driver, "//table[@ng-table='tableParamsServicosEspecializados']", By.XPATH, 5):
+            if not self._wait_for_element(driver, "//table[@ng-table='tableParamsServicosEspecializados']", By.XPATH):
                 self.logger.warning("Failed to find 'Serviços' table")
                 raise ScrapingError(
                     "Tabela de serviços não encontrada na página do estabelecimento",
@@ -179,7 +181,7 @@ class CNESScraper:
             )
     
     
-    def _wait_for_element(self, driver, selector, by, timeout=30):
+    def _wait_for_element(self, driver, selector, by):
         """
         Wait for an element to be present on the page.
 
@@ -193,7 +195,7 @@ class CNESScraper:
             bool: True if the element is found, False otherwise.
         """
         try:
-            WebDriverWait(driver, timeout).until(
+            WebDriverWait(driver, self.TIMEOUT_DEFAULT).until(
                 EC.presence_of_element_located((by, selector)))
             return True
         except TimeoutException as e:
@@ -218,7 +220,7 @@ class CNESScraper:
             TimeoutException: If the element is not clickable.
         """
         try:    
-            element = WebDriverWait(driver, 30).until(
+            element = WebDriverWait(driver, self.TIMEOUT_DEFAULT).until(
             EC.element_to_be_clickable((by, selector)))
             element.click()
         except NoSuchElementException as e:

@@ -10,6 +10,7 @@ from errors.base_error import BaseError
 from errors.validation_error import ValidationError
 from schemas.validate_schemas import ValidateSchema, PydanticValidationError 
 from utils.sse_manager import sse_manager
+from repositories.establishment_repository import EstablishmentRepository  # Import your repository or database connection
 
 
 # Initialize Flask application
@@ -63,12 +64,19 @@ def handle_http_exception(error):
 @app.route('/health', methods=['GET'])
 def health_check():
     """
-    Health check endpoint to verify the API is running.
+    Health check endpoint to verify the API and database connectivity.
 
     Returns:
         Response: JSON response with health status.
     """
-    return jsonify({"status": "healthy"}), 200
+    try:
+        # Check database connectivity
+        repo = EstablishmentRepository()
+        repo.ping()
+        return jsonify({"status": "healthy", "database": "connected"}), 200
+    except Exception as e:
+        logging.error(f"Database connectivity check failed: {str(e)}")
+        return jsonify({"status": "unhealthy", "database": "disconnected", "error": str(e)}), 500
 
 
 # SSE connection endpoint
@@ -123,7 +131,6 @@ def process_data():
         request_id = str(uuid.uuid4())
         sse_manager.create_client(request_id)
         
-        # Include request_id in the response so the client can use it to connect to the events endpoint
         initial_response = {
             "request_id": request_id,
             "status": "processing",
@@ -182,7 +189,7 @@ def process_data():
         Thread(target=process_async).start()
         
         # Return immediate response with request_id
-        return jsonify(initial_response), 202  # 202 Accepted
+        return jsonify(initial_response), 202
     
     except BaseError as e:
         raise e

@@ -4,7 +4,7 @@ import time
 from core.services.data_processor import DataProcessor
 from core.services.establishment_validator import EstablishmentValidator
 from repositories.establishment_repository import EstablishmentRepository
-from interfaces.web_scraper import CNESScraper
+from interfaces.establishment_scraper import CNESScraper
 from interfaces.csv_scraper import CSVScraper
 from errors.external_service_error import ExternalServiceError
 from errors.not_found_error import NotFoundError
@@ -67,7 +67,7 @@ class Services:
                     "completed"
                 )
         
-        time.sleep(2) # Simulate some processing time
+        time.sleep(2) # Simulate some processing time to show progress message
         
         return valid_months
 
@@ -95,7 +95,6 @@ class Services:
             NotFoundError: If the professional is not found.
         """
         try:
-            # Step 1: Retrieve data from CNES
             if request_id:
                 sse_manager.publish_progress(
                     request_id, 
@@ -152,7 +151,6 @@ class Services:
             DataProcessingError: If an error occurs during processing.
         """
         try:
-            # Step 2: Validate establishments
             if request_id:
                 sse_manager.publish_progress(
                     request_id, 
@@ -162,7 +160,6 @@ class Services:
                     "in_progress"
                 )
             
-            # Process the data using data_processor which will handle Step 2 & 3
             return self.data_processor.process_csv(csv_input, overall_result, body, request_id)
             
         except (DataProcessingError, EstablishmentValidationError) as e:

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch, MagicMock
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 
-from src.interfaces.web_scraper import CNESScraper
+from interfaces.establishment_scraper import CNESScraper
 from errors.establishment_scraping_error import ScrapingError
 
 class TestCNESScraper:

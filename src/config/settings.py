@@ -16,7 +16,6 @@ class Settings:
         """
         Initialize the Settings object and load configuration values.
         """
-        self.BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
         self.reload()
     
     def reload(self):
@@ -31,15 +30,12 @@ class Settings:
             "user": os.getenv("DB_USER"),
             "password": os.getenv("DB_PASSWORD")
         }
+        
         # SQLAlchemy engine
         self.engine = create_engine(
             f"postgresql://{self.DB_CONFIG['user']}:{self.DB_CONFIG['password']}"
             f"@{self.DB_CONFIG['host']}:{self.DB_CONFIG['port']}/{self.DB_CONFIG['database']}?sslmode=require"
         )
-        
-        # Directories
-        self.ASSETS_DIR = os.path.join(self.BASE_DIR, 'assets')
-        self.REPORTS_DIR = os.path.join(self.BASE_DIR, 'reports')
         
         # Chrome options
         self.CHROME_OPTIONS = [

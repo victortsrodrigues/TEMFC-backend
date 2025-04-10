@@ -3,7 +3,7 @@ import csv
 from src.core.services.data_processor import DataProcessor
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.repositories.establishment_repository import EstablishmentRepository
-from src.interfaces.web_scraper import CNESScraper
+from interfaces.establishment_scraper import CNESScraper
 
 
 class TestDataProcessorEstablishmentIntegration:

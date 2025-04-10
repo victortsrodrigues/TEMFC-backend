@@ -11,6 +11,18 @@ class EstablishmentRepository:
         """Initializes the repository with a logger."""
         self.logger = logging.getLogger(__name__)
     
+    def ping(self):
+        """
+        Checks the database connection by executing a simple query.
+        """
+        try:
+            with settings.engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception as e:
+            self.logger.error(f"Error in ping: {e}")
+            raise DatabaseError("Database connection error")
+        
+    
     def check_establishment(self, ibge_cnes):
         """
         Checks if an establishment exists and has specific services.
@@ -29,7 +41,6 @@ class EstablishmentRepository:
         """
         try:
             with settings.engine.connect() as conn:
-                # Check if estab exists in all_estab_serv_class table
                 result = conn.execute(
                     text('SELECT COUNT(*) FROM all_estab_serv_class WHERE "CO_UNIDADE" = :val'),
                     {"val": ibge_cnes}

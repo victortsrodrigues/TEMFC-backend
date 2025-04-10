@@ -96,7 +96,7 @@ class DataProcessor:
                         "in_progress"
                     )
                 
-                time.sleep(2) # Simulate some processing time
+                time.sleep(2) # Simulate some processing time to show progress message
                 
                 for i, validator in enumerate(self.VALIDATION_STRATEGIES):                    
                     file.seek(0)
