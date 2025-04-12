@@ -1,5 +1,5 @@
 import pytest
-from io import StringIO
+
 from src.core.services.data_processor import DataProcessor
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.repositories.establishment_repository import EstablishmentRepository

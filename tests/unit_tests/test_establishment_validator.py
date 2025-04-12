@@ -6,8 +6,6 @@ from io import StringIO
 from unittest.mock import MagicMock, patch, Mock
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.core.models.row_process_data import RowProcessData
-from src.errors.establishment_validator_error import EstablishmentValidationError
-from src.errors.database_error import DatabaseError
 
 
 class TestEstablishmentValidator:

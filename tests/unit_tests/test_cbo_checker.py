@@ -1,4 +1,3 @@
-import pytest
 from src.utils.cbo_checker import CBOChecker
 
 # Unit Tests

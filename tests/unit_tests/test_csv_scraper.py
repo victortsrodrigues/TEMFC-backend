@@ -2,7 +2,6 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch, ANY
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
-from io import StringIO
 
 from errors.csv_scraping_error import CSVScrapingError
 from interfaces.csv_scraper import CSVScraper

@@ -10,7 +10,7 @@ from errors.base_error import BaseError
 from errors.validation_error import ValidationError
 from schemas.validate_schemas import ValidateSchema, PydanticValidationError 
 from utils.sse_manager import sse_manager
-from repositories.establishment_repository import EstablishmentRepository  # Import your repository or database connection
+from repositories.establishment_repository import EstablishmentRepository
 
 
 # Initialize Flask application
@@ -185,13 +185,11 @@ def process_data():
                 sse_manager.publish_progress(request_id, 3, "Erro inesperado", None, "error")
                 logging.error(f"Unexpected error in async processing: {str(e)}\n{traceback.format_exc()}")
             
-            # Modified: Regardless of outcome, notify SSE manager that processing is done
             finally:
                 # Note: We don't remove the client here to allow the client to receive the final events
                 # The client will be removed either when disconnected or when timed out by the cleanup process
                 pass
         
-        # Modified: Create daemon thread that won't prevent application exit
         thread = Thread(target=process_async)
         thread.daemon = True
         thread.start()
@@ -216,4 +214,4 @@ def run_api(host='0.0.0.0', port=5000, debug=False):
         port: Port number to run the server.
         debug: Whether to run the server in debug mode.
     """
-    app.run(host=host, port=port, debug=debug, threaded=True)  # Modified: Ensure threaded mode is enabled
+    app.run(host=host, port=port, debug=debug, threaded=True)

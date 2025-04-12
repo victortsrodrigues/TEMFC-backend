@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+
 from src.utils.date_parser import DateParser
 
 # Unit Tests

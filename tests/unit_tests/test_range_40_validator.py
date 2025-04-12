@@ -1,4 +1,3 @@
-import pytest
 from src.core.services.validation.range_40_validator import Range40Validator
 from src.core.models.validation_result import ProfessionalExperienceValidator
 

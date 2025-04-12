@@ -2,6 +2,7 @@ import csv
 import json
 import logging
 import time
+
 from io import StringIO
 from seleniumwire import webdriver
 from selenium.webdriver.common.by import By

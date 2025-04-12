@@ -1,9 +1,29 @@
+# Web framework
 blinker==1.5
 flask==2.0.3
 werkzeug==2.1.2
 flask-cors==3.0.10
+gunicorn==23.0.0
+
+# Database
+sqlalchemy==2.0.40
+psycopg2-binary==2.9.10
+
+# Web Scraping
+selenium==4.9.1
+chromedriver-autoinstaller==0.6.4
+webdriver-manager==4.0.2
 selenium-wire==5.1.0
-python-dotenv
-sqlalchemy
-selenium
-chromedriver-autoinstaller
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.11.2
+sseclient-py==1.8.0
+
+# Testing
+pytest==8.3.5
+pytest-cov==6.0.0
+pytest-timeout==2.3.1
+
+# Additional dependencies
+requests==2.32.3

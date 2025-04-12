@@ -1,3 +1,5 @@
+import logging
+
 from utils.cbo_checker import CBOChecker
 from core.models.row_process_data import RowProcessData
 from utils.date_parser import DateParser
@@ -5,7 +7,7 @@ from errors.establishment_validator_error import EstablishmentValidationError
 from errors.database_error import DatabaseError
 from errors.establishment_scraping_error import ScrapingError
 from utils.sse_manager import sse_manager
-import logging
+
 
 class EstablishmentValidator:
     """

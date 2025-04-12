@@ -25,12 +25,13 @@ class SSEManager:
             logger (Logger): Logger instance for logging events.
             _lock (Lock): Thread synchronization lock for client operations.
             max_idle_time (int): Maximum seconds a client can be idle.
+            event_ttl (int): Maximum time to retain events before discarding.
         """
-        self.clients = {}  # Store active client connections
-        self.client_last_active = {}  # Track when each client was last active
-        self.last_events = {}  # Stores (event_type, data, timestamp)
+        self.clients = {}  
+        self.client_last_active = {}  
+        self.last_events = {}  
         self.logger = logging.getLogger(__name__)
-        self._lock = Lock()  # Add thread synchronization
+        self._lock = Lock()
         self.max_idle_time = max_idle_time
         self.event_ttl = event_ttl
         
@@ -234,34 +235,29 @@ class SSEManager:
                         self.logger.debug(f"Sent retained {retained['type']} event to {client_id}")
                 
                 # Keep the connection open and wait for events with heartbeat
-                heartbeat_interval = 15  # Send heartbeat every 15 seconds
-                poll_interval = 1  # Poll the queue every second
+                heartbeat_interval = 15 
+                poll_interval = 1 
                 time_since_heartbeat = 0
                 
                 while True:
                     try:
                         # Use get with timeout to prevent indefinite blocking
                         event = self.clients[client_id].get(timeout=poll_interval)
-                        # Reset heartbeat counter on activity
                         time_since_heartbeat = 0
-                        # Update client activity timestamp
                         self.update_client_activity(client_id)
                         yield event
                     except Empty:
                         # No event available, check if we need to send a heartbeat
                         time_since_heartbeat += poll_interval
                         if time_since_heartbeat >= heartbeat_interval:
-                            # Send heartbeat to keep connection alive
                             yield ": heartbeat\n\n"
                             time_since_heartbeat = 0
-                            # Update client activity timestamp on heartbeat
                             self.update_client_activity(client_id)
             except GeneratorExit:
                 self.logger.info(f"Client disconnected: {client_id}")
             except Exception as e:
                 self.logger.error(f"Error in SSE stream for client {client_id}: {e}")
             finally:
-                # Always clean up resources
                 self.remove_client(client_id)
         
         return Response(generate(), mimetype="text/event-stream")

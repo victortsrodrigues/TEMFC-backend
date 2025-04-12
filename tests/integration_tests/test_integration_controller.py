@@ -6,13 +6,11 @@ import logging
 from werkzeug.serving import make_server
 import requests
 import sseclient
-import uuid
 
 from controllers.controller import app
 from errors.csv_scraping_error import CSVScrapingError
 from errors.establishment_validator_error import EstablishmentValidationError
 from errors.data_processing_error import DataProcessingError
-from errors.establishment_scraping_error import ScrapingError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,11 +37,11 @@ def stub_run_services(monkeypatch):
         if request_id:
             sse_manager.publish_progress(request_id, 1, "Iniciando processamento", 0, "in_progress")
         # Decide comportamento por CPF
-        if cpf == '01544356943':  # elegível
+        if cpf == '11111111111':  # elegível
             valid_months = 60
-        elif cpf == '04729738519':  # não elegível
+        elif cpf == '22222222222':  # não elegível
             valid_months = 30
-        elif cpf == '12345678901':  # não encontrado
+        elif cpf == '33333333333':  # não encontrado
             error_data = {'error': 'Profissional não encontrado', 'status_code': 404}
             sse_manager.publish_event(request_id, 'error', error_data)
             sse_manager.publish_progress(request_id, 3, f"Error: {error_data['error']}", None, 'error')
@@ -151,7 +149,7 @@ def test_health_success(health_endpoint):
 # -------------- Process Eligible --------------
 
 def test_process_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
-    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    data = {"cpf": "11111111111", "name": "Eligible Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -168,7 +166,7 @@ def test_process_eligible_professional(stub_run_services, process_endpoint, even
     assert listener.error_event is None
     assert listener.result_event is not None
     result = listener.result_event
-    assert result['name'] == 'EDGARD KINDERMANN'
+    assert result['name'] == 'ELIGIBLE PROFESSIONAL'
     assert result['status'] == 'ELIGIBLE'
     assert result['valid_months'] >= 48
     assert listener.progress_events
@@ -176,7 +174,7 @@ def test_process_eligible_professional(stub_run_services, process_endpoint, even
 # -------------- Process Not Eligible --------------
 
 def test_process_not_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
-    data = {"cpf": "04729738519", "name": "Priscila Maciel"}
+    data = {"cpf": "22222222222", "name": "Not Eligible Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -200,7 +198,7 @@ def test_process_not_eligible_professional(stub_run_services, process_endpoint, 
 # -------------- Process Not Found --------------
 
 def test_process_professional_not_found(stub_run_services, process_endpoint, events_endpoint):
-    data = {"cpf": "12345678901", "name": "Fulano Cicrano"}
+    data = {"cpf": "33333333333", "name": "Not Found Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -248,7 +246,7 @@ def test_external_service_error(monkeypatch, process_endpoint, events_endpoint):
         'interfaces.csv_scraper.CSVScraper.get_csv_data',
         lambda *args, **kwargs: (_ for _ in ()).throw(CSVScrapingError('Fail', {}))
     )
-    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    data = {"cpf": "11111111111", "name": "Random Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -280,7 +278,7 @@ def test_establishment_validation_error(monkeypatch, process_endpoint, events_en
         'core.services.establishment_validator.EstablishmentValidator.check_establishment',
         lambda *args, **kwargs: (_ for _ in ()).throw(EstablishmentValidationError('Val error', {}))
     )
-    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    data = {"cpf": "11111111111", "name": "Random Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -312,7 +310,7 @@ def test_data_processing_error(monkeypatch, process_endpoint, events_endpoint):
         'core.services.data_processor.DataProcessor.process_csv',
         lambda *args, **kwargs: (_ for _ in ()).throw(DataProcessingError('Proc error', {}))
     )
-    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    data = {"cpf": "11111111111", "name": "Random Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
@@ -342,7 +340,7 @@ def test_invalid_csv_format(monkeypatch, process_endpoint, events_endpoint):
         'interfaces.csv_scraper.CSVScraper.get_csv_data',
         lambda *args, **kwargs: 'invalid,format'
     )
-    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    data = {"cpf": "11111111111", "name": "Random Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
     assert resp.status_code == 202
     req_id = resp.json()['request_id']
