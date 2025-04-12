@@ -89,7 +89,7 @@ def test_validate_columns_with_missing_columns(data_processor):
     with pytest.raises(DataProcessingError) as excinfo:
         data_processor._validate_columns(fieldnames)
 
-    assert "CSV data format is invalid" in str(excinfo.value)
+    assert "Formato de dados inválido" in str(excinfo.value)
     assert "COMP." in str(excinfo.value.details.get("missing_columns"))
 
 
@@ -100,7 +100,7 @@ def test_validate_columns_with_invalid_structure(data_processor):
     with pytest.raises(DataProcessingError) as excinfo:
         data_processor._validate_columns(fieldnames)
 
-    assert "CSV structure is invalid" in str(excinfo.value)
+    assert "Formato de dados inválido" in str(excinfo.value)
 
 
 def test_process_csv_handles_exception(data_processor, tmp_path):
@@ -119,7 +119,7 @@ def test_process_csv_handles_exception(data_processor, tmp_path):
         with pytest.raises(DataProcessingError) as excinfo:
             data_processor.process_csv(csv_file, overall_result, body)
 
-    assert "Failed to process CSV data" in str(excinfo.value)
+    assert "Erro ao processar o histórico profissional" in str(excinfo.value)
     assert "test_file" in str(excinfo.value.details.get("input"))
     assert mock_logger.called
 
@@ -181,7 +181,7 @@ def test_finalize_processing_sorts_valid_rows(data_processor):
         "utils.date_parser.DateParser.format_yyyymm_to_mm_yyyy",
         side_effect=["03/2023", "01/2023", "02/2023"],
     ):
-        data_processor._finalize_processing(StringIO(), result, overall_result, body)
+        data_processor._finalize_processing(result, overall_result, body)
 
     # Check that rows are sorted in reverse order
     assert result.valid_rows[0]["COMP."] == "202303"
@@ -201,7 +201,7 @@ def test_finalize_processing_with_ineligible_candidate(data_processor):
     body = {"name": "test_file"}
     
     with patch("utils.date_parser.DateParser.format_yyyymm_to_mm_yyyy", side_effect=["01/2023", "02/2023", "03/2023", "04/2023"]):
-        data_processor._finalize_processing(StringIO(), result, overall_result, body)
+        data_processor._finalize_processing(result, overall_result, body)
     
     assert overall_result["test_file"]["status"] == "Not eligible"
     assert overall_result["test_file"]["pending"] == 45

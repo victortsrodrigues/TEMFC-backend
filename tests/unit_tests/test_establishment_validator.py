@@ -260,7 +260,7 @@ test_duplicate;123;Test Hospital;40;MEDICO CLINICO;202401
         with pytest.raises(ValueError) as excinfo:
             validator._create_entry(line)
 
-        assert "Invalid value format" in str(excinfo.value)
+        assert "Formato de campo inválido" in str(excinfo.value)
 
 
     def test_create_entry_with_invalid_date_format(self):
@@ -279,7 +279,7 @@ test_duplicate;123;Test Hospital;40;MEDICO CLINICO;202401
         with pytest.raises(ValueError) as excinfo:
             validator._create_entry(line)
 
-        assert "Invalid date format" in str(excinfo.value)
+        assert "Formato de campo inválido" in str(excinfo.value)
 
 
     def test_should_validate_with_clinico_terms(self):

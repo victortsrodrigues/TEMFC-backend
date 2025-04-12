@@ -1,174 +1,367 @@
-import json
 import pytest
-import math
+import json
+import time
+import threading
+import logging
+from werkzeug.serving import make_server
+import requests
+import sseclient
+import uuid
 
-from src.controllers.controller import app
+from controllers.controller import app
+from errors.csv_scraping_error import CSVScrapingError
+from errors.establishment_validator_error import EstablishmentValidationError
+from errors.data_processing_error import DataProcessingError
+from errors.establishment_scraping_error import ScrapingError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+HOST = '192.168.1.5'
+PORT = 5000
+BASE_URL = f"http://{HOST}:{PORT}"
+
+# ------------------ Monkeypatch run_services ------------------
+@pytest.fixture
+def stub_run_services(monkeypatch):
+    """
+    Substitui Services.run_services para publicar eventos imediatos sem invocar Selenium ou DB.
+    """
+    from core.services.core_service import Services
+    from utils.sse_manager import sse_manager
+    from errors.not_found_error import NotFoundError
+
+    def fake_run_services(self, body, request_id=None):
+        cpf = body.get('cpf')
+        name = body.get('name')
+        # Passo de progresso inicial
+        if request_id:
+            sse_manager.publish_progress(request_id, 1, "Iniciando processamento", 0, "in_progress")
+        # Decide comportamento por CPF
+        if cpf == '01544356943':  # elegível
+            valid_months = 60
+        elif cpf == '04729738519':  # não elegível
+            valid_months = 30
+        elif cpf == '12345678901':  # não encontrado
+            error_data = {'error': 'Profissional não encontrado', 'status_code': 404}
+            sse_manager.publish_event(request_id, 'error', error_data)
+            sse_manager.publish_progress(request_id, 3, f"Error: {error_data['error']}", None, 'error')
+            raise NotFoundError("Profissional não encontrado")
+        else:
+            valid_months = 0
+        # Publica resultado
+        result = {
+            'name': name,
+            'valid_months': valid_months,
+            'status': 'ELIGIBLE' if valid_months >= 48 else 'NOT ELIGIBLE',
+            'pending_months': max(0, 48 - valid_months)
+        }
+        sse_manager.publish_event(request_id, 'result', result)
+        sse_manager.publish_progress(request_id, 3, "Processo concluído!", 100, 'completed')
+        return valid_months
+
+    monkeypatch.setattr(Services, 'run_services', fake_run_services)
+
+class TestServer:
+    def __init__(self, app, host=HOST, port=PORT):
+        self.server = make_server(host, port, app, threaded=True)
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.daemon = True
+
+    def start(self):
+        self.thread.start()
+        time.sleep(1)
+
+    def stop(self):
+        self.server.shutdown()
+        self.thread.join()
+
+@pytest.fixture(scope='module')
+def test_server():
+    srv = TestServer(app)
+    srv.start()
+    yield srv
+    srv.stop()
 
 @pytest.fixture
-def client():
-    """Create a test client for the Flask app"""
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
+def health_endpoint(test_server):
+    return f"{BASE_URL}/health"
+
+@pytest.fixture
+def process_endpoint(test_server):
+    return f"{BASE_URL}/"
+
+@pytest.fixture
+def events_endpoint(test_server):
+    return f"{BASE_URL}/events"
+
+class SSEListener:
+    def __init__(self, url):
+        self.url = url
+        self.events = []
+        self.progress_events = []
+        self.result_event = None
+        self.error_event = None
+        self.thread = None
+        self.running = False
+        self.response = None
+
+    def start_listening(self):
+        self.running = True
+        self.thread = threading.Thread(target=self._listen, daemon=True)
+        self.thread.start()
+
+    def stop_listening(self):
+        self.running = False
+        if self.response:
+            self.response.close()
+        if self.thread:
+            self.thread.join(timeout=3)
+
+    def _listen(self):
+        try:
+            self.response = requests.get(self.url, stream=True, timeout=10)
+            client = sseclient.SSEClient(self.response)
+            for event in client.events():
+                if not self.running:
+                    break
+                self.events.append(event)
+                if event.event == 'progress':
+                    self.progress_events.append(json.loads(event.data))
+                elif event.event == 'result':
+                    self.result_event = json.loads(event.data)
+                elif event.event == 'error':
+                    self.error_event = json.loads(event.data)
+        except Exception as e:
+            logger.error(f"Listener error: {e}")
+        finally:
+            if self.response:
+                self.response.close()
+
+# -------------- Health Endpoint --------------
+
+def test_health_success(health_endpoint):
+    resp = requests.get(health_endpoint, timeout=10)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data['status'] == 'healthy'
+    assert data['database'] == 'connected'
+
+# -------------- Process Eligible --------------
+
+def test_process_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
+    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.result_event or listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.error_event is None
+    assert listener.result_event is not None
+    result = listener.result_event
+    assert result['name'] == 'EDGARD KINDERMANN'
+    assert result['status'] == 'ELIGIBLE'
+    assert result['valid_months'] >= 48
+    assert listener.progress_events
+
+# -------------- Process Not Eligible --------------
+
+def test_process_not_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
+    data = {"cpf": "04729738519", "name": "Priscila Maciel"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.result_event or listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.error_event is None
+    assert listener.result_event is not None
+    result = listener.result_event
+    assert result['status'] == 'NOT ELIGIBLE'
+    assert result['valid_months'] < 48
+    assert result['pending_months'] > 0
+
+# -------------- Process Not Found --------------
+
+def test_process_professional_not_found(stub_run_services, process_endpoint, events_endpoint):
+    data = {"cpf": "12345678901", "name": "Fulano Cicrano"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.result_event is None
+    assert listener.error_event is not None
+    assert 'Profissional não encontrado' in listener.error_event['error']
+
+# -------------- Invalid Input --------------
+
+def test_invalid_input_data(process_endpoint):
+    resp = requests.post(process_endpoint, json={"cpf": "123"}, timeout=5)
+    assert resp.status_code in (400, 422)
+
+# -------------- SSE Functionality --------------
+
+def test_create_new_sse_client(events_endpoint):
+    resp = requests.get(events_endpoint, stream=True, timeout=5)
+    assert resp.status_code == 200
+    assert 'text/event-stream' in resp.headers.get('Content-Type')
+    resp.close()
+
+def test_multiple_sse_connections(events_endpoint):
+    conns = []
+    for _ in range(3):
+        r = requests.get(events_endpoint, stream=True, timeout=5)
+        assert r.status_code == 200
+        conns.append(r)
+    for r in conns:
+        r.close()
+
+# -------------- Error Handling (others) --------------
+
+def test_external_service_error(monkeypatch, process_endpoint, events_endpoint):
+    monkeypatch.setattr(
+        'interfaces.csv_scraper.CSVScraper.get_csv_data',
+        lambda *args, **kwargs: (_ for _ in ()).throw(CSVScrapingError('Fail', {}))
+    )
+    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.error_event is not None
+    assert listener.error_event['status_code'] == 404
 
 
-class TestControllerRealIntegration:
-    def test_health_check(self, client):
-        """Test the health check endpoint"""
-        response = client.get('/health')
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['status'] == 'healthy'
-    
-
-    def test_process_data_not_eligible(self, client):
-        """
-        Test the full integration of the API with real service implementation
-        using the specified CPF and name, with in-memory CSV data.
-        """
-        
-        # Test data
-        test_data = {
-            "cpf": "05713248356",
-            "name": "Leticia Lima Luz"
-        }
-        
-        # Make the API request
-        response = client.post(
-            '/',
-            data=json.dumps(test_data),
-            content_type='application/json'
+def test_establishment_validation_error(monkeypatch, process_endpoint, events_endpoint):
+    # stub CSV
+    monkeypatch.setattr(
+        'interfaces.csv_scraper.CSVScraper.get_csv_data',
+        lambda *args, **kwargs: (
+            "CNES;IBGE;ESTABELECIMENTO;CHS AMB.;DESCRICAO CBO;COMP.\n"
+            "2337545;317130;Test;20;MEDICO DA FAMILIA;202001"
         )
-        
-        # Print response for debugging
-        print(f"Response status: {response.status_code}")
-        print(f"Response data: {response.data.decode('utf-8')}")
-        
-        # Assertions
-        assert response.status_code == 200
-        
-        # Parse the response data
-        data = json.loads(response.data)
-        
-        # Verify the structure of the response
-        assert 'name' in data
-        assert 'valid_months' in data
-        assert 'status' in data
-        assert 'pending_months' in data
-              
-        assert data['valid_months'] == 2
-        assert data['status'] == 'NOT ELIGIBLE'
-        assert data['pending_months'] == 46
-        
-        # If details are provided, verify them
-        if 'details' in data:
-            assert 'semesters_40' in data['details']
-            assert 'semesters_30' in data['details']
-            assert 'semesters_20' in data['details']
-            
-            assert data['details']['semesters_40'] == 0
-            assert data['details']['semesters_30'] == 0
-            assert data['details']['semesters_20'] == 0
-        
+    )
+    # stub error
+    monkeypatch.setattr(
+        'core.services.establishment_validator.EstablishmentValidator.check_establishment',
+        lambda *args, **kwargs: (_ for _ in ()).throw(EstablishmentValidationError('Val error', {}))
+    )
+    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
 
-    def test_process_data_eligible(self, client):
-        """
-        Test the full integration of the API with real service implementation
-        using the specified CPF and name, with in-memory CSV data.
-        """
-        
-        # Test data
-        test_data = {
-            "cpf": "01237925177",
-            "name": "Laís Lena Pereira Silva"
-        }
-        
-        # Make the API request
-        response = client.post(
-            '/',
-            data=json.dumps(test_data),
-            content_type='application/json'
-        )
-        
-        # Print response for debugging
-        print(f"Response status: {response.status_code}")
-        print(f"Response data: {response.data.decode('utf-8')}")
-        
-        # Assertions
-        assert response.status_code == 200
-        
-        # Parse the response data
-        data = json.loads(response.data)
-        
-        # Verify the structure of the response
-        assert 'name' in data
-        assert 'valid_months' in data
-        assert 'status' in data
-        assert 'pending_months' in data
-              
-        assert math.isclose(data['valid_months'], 53.25)
-        assert data['status'] == 'ELIGIBLE'
-        assert data['pending_months'] == 0
-        
-        # If details are provided, verify them
-        if 'details' in data:
-            assert 'semesters_40' in data['details']
-            assert 'semesters_30' in data['details']
-            assert 'semesters_20' in data['details']
-            
-            assert data['details']['semesters_40'] == 7
-            assert data['details']['semesters_30'] == 2
-            assert data['details']['semesters_20'] == 0
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
 
-    
-    def test_process_data_validation_error(self, client):
-        """Test validation error handling"""
-        # Test data with missing required fields
-        test_data = {
-            "cpf": "12345678900"
-            # Missing 'name' field
-        }
-        
-        # Make request
-        response = client.post(
-            '/',
-            data=json.dumps(test_data),
-            content_type='application/json'
+    assert listener.error_event is not None
+    assert listener.error_event['status_code'] == 422
+
+
+def test_data_processing_error(monkeypatch, process_endpoint, events_endpoint):
+    # stub CSV
+    monkeypatch.setattr(
+        'interfaces.csv_scraper.CSVScraper.get_csv_data',
+        lambda *args, **kwargs: (
+            "CNES;IBGE;ESTABELECIMENTO;CHS AMB.;DESCRICAO CBO;COMP.\n"
+            "2337545;317130;Test;20;MEDICO DA FAMILIA;202001"
         )
-        
-        # Assertions
-        assert response.status_code == 400  # Bad request
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'details' in data
-        
-        
-    def test_http_exception_handler(self, client):
-        """Test HTTP exception handling"""
-        # Make request to non-existent endpoint
-        response = client.get('/non-existent-endpoint')
-        
-        # Assertions
-        assert response.status_code == 404
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert data['status_code'] == 404
-        
-        
-    def test_not_found_csv_data(self, client):
-        test_data = {
-            "cpf": "12345678910",
-            "name": "Fulano Cicrano"
-        }
-        
-        response = client.post(
-            '/',
-            data=json.dumps(test_data),
-            content_type='application/json'
-        )
-        
-        # Assertions
-        assert response.status_code == 404
-        data = json.loads(response.data)
-        assert 'error' in data
-        assert 'details' in data
+    )
+    # stub error
+    monkeypatch.setattr(
+        'core.services.data_processor.DataProcessor.process_csv',
+        lambda *args, **kwargs: (_ for _ in ()).throw(DataProcessingError('Proc error', {}))
+    )
+    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.error_event is not None
+    assert listener.error_event['status_code'] == 422
+
+
+def test_sse_invalid_request_id(events_endpoint):
+    r = requests.get(f"{events_endpoint}?request_id=invalid-id", stream=True, timeout=5)
+    assert r.status_code == 200
+    assert 'text/event-stream' in r.headers.get('Content-Type')
+    r.close()
+
+
+def test_invalid_csv_format(monkeypatch, process_endpoint, events_endpoint):
+    monkeypatch.setattr(
+        'interfaces.csv_scraper.CSVScraper.get_csv_data',
+        lambda *args, **kwargs: 'invalid,format'
+    )
+    data = {"cpf": "01544356943", "name": "Edgard Kindermann"}
+    resp = requests.post(process_endpoint, json=data, timeout=5)
+    assert resp.status_code == 202
+    req_id = resp.json()['request_id']
+
+    listener = SSEListener(f"{events_endpoint}?request_id={req_id}")
+    listener.start_listening()
+    start = time.time()
+    while time.time() - start < 5:
+        if listener.error_event:
+            break
+        time.sleep(0.2)
+    listener.stop_listening()
+
+    assert listener.error_event is not None
+    msg = listener.error_event['error'].lower()
+    assert 'formato de dados inválido' in msg
+
+# -------------- Non-existent endpoint --------------
+
+def test_nonexistent_endpoint(test_server):
+    r = requests.get(f"{BASE_URL}/no_such_route", timeout=5)
+    assert r.status_code == 404

@@ -238,7 +238,7 @@ class EstablishmentValidator:
         except KeyError as e:
             raise KeyError(f"Faltando o campo: {e}")
         except ValueError:
-            raise ValueError
+            raise ValueError("Formato de campo inválido.")
 
     def _should_validate(self, entry, unique_entries):
         """

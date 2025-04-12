@@ -100,8 +100,8 @@ class CNESScraper:
         try:
             driver.get(f"https://cnes.datasus.gov.br/pages/estabelecimentos/consulta.jsp?search={cnes}")
             return self._wait_for_element(driver, "body > div.layout > main > div > div.col-md-12.ng-scope > div > div:nth-child(9) > table > tbody > tr > td:nth-child(8) > a > span", By.CSS_SELECTOR)
-        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
-            self.logger.error(f"Error searching by CNES: {e}")
+        except Exception as e:
+            self.logger.error(f"Erro ao buscar pelo CPF: {e}")
             return False
 
 
@@ -117,11 +117,11 @@ class CNESScraper:
             bool: True if the establishment is found, False otherwise.
         """
         try:
-            encoded_name = quote_plus(name)
+            encoded_name = name.replace(" ", "%20")
             driver.get(f"https://cnes.datasus.gov.br/pages/estabelecimentos/consulta.jsp?search={encoded_name}")
             return self._wait_for_element(driver, "body > div.layout > main > div > div.col-md-12.ng-scope > div > div:nth-child(9) > table > tbody > tr > td:nth-child(8) > a > span", By.CSS_SELECTOR)
         except Exception as e:
-            self.logger.error(f"Error searching by name: {e}")
+            self.logger.error(f"Erro ao buscar pelo nome: {e}")
             return False
 
 
@@ -176,7 +176,7 @@ class CNESScraper:
         except Exception as e:
             self.logger.warning(f"Service check failed: {e}")
             raise ScrapingError(
-                "Falha na verificação de serviços do estabelecimento",
+                f"{str(e)}",
                 {"details": str(e)}
             )
     
