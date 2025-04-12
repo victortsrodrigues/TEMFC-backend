@@ -1,108 +1,17 @@
 import logging
 import traceback
 import uuid
+from threading import Thread
 
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
-from werkzeug.exceptions import HTTPException
-from core.services.core_service import Services
+from flask import Blueprint, request, jsonify, current_app
 from errors.base_error import BaseError
 from errors.validation_error import ValidationError
-from schemas.validate_schemas import ValidateSchema, PydanticValidationError 
-from utils.sse_manager import sse_manager
-from repositories.establishment_repository import EstablishmentRepository
+from schemas.validate_schemas import ValidateSchema, PydanticValidationError
 
+# Create a Blueprint for processing-related routes
+processing_bp = Blueprint('processing', __name__)
 
-# Initialize Flask application
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Enable CORS with broader settings for SSE
-
-# Initialize application components
-services = Services()
-
-# Error handler for API errors
-@app.errorhandler(BaseError)
-def handle_api_error(error):
-    """
-    Handle custom API errors.
-
-    Args:
-        error: The BaseError instance.
-
-    Returns:
-        Response: JSON response with error details and status code.
-    """
-    response = {
-        "error": error.message,
-        "status_code": error.status_code
-    }
-    if error.details:
-        response["details"] = error.details
-    return jsonify(response), error.status_code
-
-
-# Error handler for HTTP exceptions
-@app.errorhandler(HTTPException)
-def handle_http_exception(error):
-    """
-    Handle HTTP exceptions.
-
-    Args:
-        error: The HTTPException instance.
-
-    Returns:
-        Response: JSON response with error details and status code.
-    """
-    response = {
-        "error": error.description,
-        "status_code": error.code
-    }
-    return jsonify(response), error.code
-
-
-# Health check endpoint
-@app.route('/health', methods=['GET'])
-def health_check():
-    """
-    Health check endpoint to verify the API and database connectivity.
-
-    Returns:
-        Response: JSON response with health status.
-    """
-    try:
-        # Check database connectivity
-        repo = EstablishmentRepository()
-        repo.ping()
-        return jsonify({"status": "healthy", "database": "connected"}), 200
-    except Exception as e:
-        logging.error(f"Database connectivity check failed: {str(e)}")
-        return jsonify({"status": "unhealthy", "database": "disconnected", "error": str(e)}), 500
-
-
-# SSE connection endpoint
-@app.route('/events', methods=['GET'])
-def events():
-    """
-    SSE endpoint to stream progress events to the client.
-
-    Returns:
-        Response: Flask response object with the event stream.
-    """
-    # Get the request_id from the query string, or create a new one
-    request_id = request.args.get('request_id')
-    
-    if not request_id:
-        # If no request_id is provided, create a new client
-        request_id = sse_manager.create_client()
-    elif request_id not in sse_manager.clients:
-        # If the request_id doesn't exist yet, create it
-        sse_manager.create_client(request_id)
-    
-    return sse_manager.stream(request_id)
-
-
-# Main processing endpoint
-@app.route('/', methods=['POST'])
+@processing_bp.route('/', methods=['POST'])
 def process_data():
     """
     Main endpoint to process professional data based on CPF and name.
@@ -129,6 +38,12 @@ def process_data():
         
         # Generate a unique request ID for this processing job
         request_id = str(uuid.uuid4())
+        
+        # Access shared components from app context
+        sse_manager = current_app.sse_manager
+        services = current_app.services
+        
+        # Create client for SSE updates
         sse_manager.create_client(request_id)
         
         initial_response = {
@@ -138,8 +53,6 @@ def process_data():
         }
         
         # Start processing in a separate thread
-        from threading import Thread
-        
         def process_async():
             try:
                 # Run services with SSE updates
@@ -184,11 +97,6 @@ def process_data():
                 sse_manager.publish_event(request_id, "error", {"error": error_msg, "status_code": 500})
                 sse_manager.publish_progress(request_id, 3, "Erro inesperado", None, "error")
                 logging.error(f"Unexpected error in async processing: {str(e)}\n{traceback.format_exc()}")
-            
-            finally:
-                # Note: We don't remove the client here to allow the client to receive the final events
-                # The client will be removed either when disconnected or when timed out by the cleanup process
-                pass
         
         thread = Thread(target=process_async)
         thread.daemon = True
@@ -203,15 +111,3 @@ def process_data():
     except Exception as e:
         logging.error(f"Unexpected error in process_data: {str(e)}\n{traceback.format_exc()}")
         raise BaseError(f"O processo falhou: {str(e)}", 500)
-
-
-def run_api(host='0.0.0.0', port=5000, debug=False):
-    """
-    Run the Flask API server.
-
-    Args:
-        host: Host address to bind the server.
-        port: Port number to run the server.
-        debug: Whether to run the server in debug mode.
-    """
-    app.run(host=host, port=port, debug=debug, threaded=True)
