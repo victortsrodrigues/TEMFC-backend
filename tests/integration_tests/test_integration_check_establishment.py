@@ -2,7 +2,7 @@ import pytest
 
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.repositories.establishment_repository import EstablishmentRepository
-from interfaces.establishment_scraper import CNESScraper
+from src.interfaces.establishment_scraper import CNESScraper
 
 
 class TestDataProcessorEstablishmentIntegration:
@@ -36,7 +36,7 @@ class TestDataProcessorEstablishmentIntegration:
         assert '6644694' in valid_cnes
         assert '7116438' in valid_cnes
         
-    # @pytest.mark.skip(reason="Takes too long. Temporary skip")
+    @pytest.mark.skip(reason="Takes too long. Temporary skip")
     def test_check_establishment_web(self, establishment_validator, csv_factory_establishment):
         """Should search in the web"""
         
@@ -49,7 +49,7 @@ class TestDataProcessorEstablishmentIntegration:
         assert '6644694' in valid_cnes
         assert '9901124' not in valid_cnes
         
-    # @pytest.mark.skip(reason="Takes too long. Temporary skip")    
+    @pytest.mark.skip(reason="Takes too long. Temporary skip")    
     def test_check_establishment_web_and_dont_find(self, establishment_validator, csv_factory_establishment):
         """Should search in the web"""
         

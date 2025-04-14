@@ -7,17 +7,17 @@ from werkzeug.serving import make_server
 import requests
 import sseclient
 
-from errors.csv_scraping_error import CSVScrapingError
-from errors.establishment_validator_error import EstablishmentValidationError
-from errors.data_processing_error import DataProcessingError
+from src.errors.csv_scraping_error import CSVScrapingError
+from src.errors.establishment_validator_error import EstablishmentValidationError
+from src.errors.data_processing_error import DataProcessingError
 
-from app import create_app
+from src.app import create_app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-HOST = '192.168.1.5'
+HOST = '127.0.0.1'
 PORT = 5000
 BASE_URL = f"http://{HOST}:{PORT}"
 
@@ -27,9 +27,9 @@ def stub_run_services(monkeypatch, app):
     """
     Substitui Services.run_services para publicar eventos imediatos sem invocar Selenium ou DB.
     """
-    from core.services.core_service import Services
-    from utils.sse_manager import sse_manager
-    from errors.not_found_error import NotFoundError
+    from src.core.services.core_service import Services
+    from src.utils.sse_manager import sse_manager
+    from src.errors.not_found_error import NotFoundError
 
     def fake_run_services(self, body, request_id=None):
         cpf = body.get('cpf')
@@ -74,7 +74,7 @@ def app():
     })
     return test_app
 
-class TestServer:
+class IntegrationTestServer:
     def __init__(self, app, host=HOST, port=PORT):
         self.server = make_server(host, port, app, threaded=True)
         self.thread = threading.Thread(target=self.server.serve_forever)
@@ -90,7 +90,7 @@ class TestServer:
 
 @pytest.fixture(scope='module')
 def test_server(app):
-    srv = TestServer(app)
+    srv = IntegrationTestServer(app)
     srv.start()
     yield srv
     srv.stop()

@@ -4,7 +4,7 @@ from src.core.services.core_service import Services
 from src.core.services.establishment_validator import EstablishmentValidator
 from src.core.services.data_processor import DataProcessor
 from src.core.models.row_process_data import RowProcessData
-from interfaces.establishment_scraper import CNESScraper
+from src.interfaces.establishment_scraper import CNESScraper
 from unittest.mock import Mock, patch
 
 @pytest.fixture
