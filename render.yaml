@@ -11,15 +11,15 @@ services:
 
     envVars:
       - key: DB_HOST
-        fromSecret: DB_HOST
+        value: disdainfully-on-numbat.data-1.usw2.tembo.io
       - key: DB_PORT
-        fromSecret: DB_PORT
+        value: 5432
       - key: DB_NAME
-        fromSecret: DB_NAME
+        value: postgres
       - key: DB_USER
-        fromSecret: DB_USER
+        value: postgres
       - key: DB_PASSWORD
-        fromSecret: DB_PASSWORD
+        sync: false
       - key: FLASK_ENV
         value: production
       - key: PYTHONPATH
