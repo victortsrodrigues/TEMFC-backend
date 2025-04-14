@@ -95,3 +95,19 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/temfc-backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/temfc-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  
+  deploy-to-render:
+    name: Deploy to Render
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - name: Trigger Render Deploy Hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          curl -X POST \
+               -H "Content-Type: application/json" \
+               -d '{}' \
+               $RENDER_DEPLOY_HOOK_URL
