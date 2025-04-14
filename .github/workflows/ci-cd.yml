@@ -28,7 +28,7 @@ jobs:
       
       - name: Run unit tests
         run: |
-          python -m pytest -m unit -v
+          python -m pytest -m unit -v --timeout=60
         env:
           PYTHONPATH: ${{ github.workspace }}/src
   
@@ -54,7 +54,7 @@ jobs:
       
       - name: Run integration tests
         run: |
-          python -m pytest -m integration -v --timeout=240
+          python -m pytest -m integration -v --timeout=300
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
