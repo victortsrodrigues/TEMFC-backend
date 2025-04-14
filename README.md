@@ -1,11 +1,15 @@
 # CNES Data Processing and Analysis
 
-This project automates the process of downloading, validating, and analyzing healthcare professional data from CNES (National Registry of Health Establishments) in Brazil. It validates establishments, processes CSV data, and generates reports based on specified criteria. The project also provides a REST API with endpoints for processing data and real-time progress updates using Server-Sent Events (SSE).
+This project automates the process of downloading, validating, and analyzing healthcare professional data from CNES (National Registry of Health Establishments) in Brazil. The objective of this project is to calculate the eligibility of medical professionals to take the TEMFC exam according to the requirements of the notice. It validates establishments, processes CSV data, and generates reports based on specified criteria. The project also provides a REST API with endpoints for processing data and real-time progress updates using Server-Sent Events (SSE).
 
 ## 🎯 Features
 
 - REST API for data processing and health checks
 - Real-time progress updates via SSE
+- CI/CD with GitHub Actions
+- Dockerized application for easy deployment
+- Unit and integration tests with pytest
+- Detailed error handling and logging
 - Automated validation of establishments using CNES and IBGE codes
 - Web scraping for establishment and professional data using Selenium
 - Processing of CSV files with healthcare professional data
@@ -19,6 +23,9 @@ This project automates the process of downloading, validating, and analyzing hea
 - Chrome WebDriver
 - PostgreSQL database
 - Required Python packages (see `requirements.txt`)
+
+## Related Projects
+- [TEMFC-fronted](https://github.com/victortsrodrigues/TEMFC-frontend)
 
 ## 🗂️ Project Structure
 
@@ -47,7 +54,7 @@ src/
 │   │       ├── range_10_validator.py
 │   │       ├── range_20_validator.py
 │   │       ├── range_30_validator.py
-│   │       └── range_40_validator.py
+│   │       ├── range_40_validator.py
 ├── errors/
 │   ├── __init__.py
 │   ├── base_error.py
@@ -105,11 +112,34 @@ src/
 4. **Run the Application for Production**:
    Start the application using Gunicorn:
    ```bash
-   gunicorn --workers=1 --threads=2 --bind=0.0.0.0:${PORT:-8000} --timeout=120 wsgi:app
+   gunicorn --workers=1 --threads=4 --bind=0.0.0.0:5000 --timeout=120 --log-level=info src.wsgi:app
    ```
 
 5. **Access the API**:
    The application will run on `http://<host>:<port>` (default: `http://0.0.0.0:5000`).
+
+### Run with Docker
+
+1. **Build the Docker Image**:
+   Build the Docker image using the provided `Dockerfile`:
+   ```bash
+   docker build -t temfc-backend .
+   ```
+
+2. **Run the Docker Container**:
+   Start the application using the built Docker image:
+   ```bash
+   docker run -p 5000:5000 --env-file .env temfc-backend
+   ```
+
+3. **Access the API**:
+   The application will be available at `http://localhost:5000`.
+
+4. **Stop the Container**:
+   To stop the running container, find its container ID using `docker ps` and stop it:
+   ```bash
+   docker stop <container_id>
+   ```
 
 ## 📄 Key Components
 
@@ -155,7 +185,7 @@ src/
    - Fetches professional data from CNES using web scraping.
 
 2. **Validation**:
-   - Validates establishments using database and online resources.
+   - Validates establishments using database and online resources using web scraping.
    - Filters records based on working hours and professional roles.
 
 3. **Processing**:
@@ -167,7 +197,7 @@ src/
 ## 📝 Output
 
 The program generates:
-- Processed CSV files with validated data.
+- Professional eligibility reports.
 - Real-time progress updates via SSE.
 - Logs with detailed error and processing information.
 
@@ -175,8 +205,8 @@ The program generates:
 
 The system uses several validation rules:
 - Minimum working hours thresholds (10h, 20h, 30h, 40h).
-- Professional role validation (e.g., MÉDICO CLÍNICO, MÉDICO GENERALISTA).
-- Establishment type verification.
+- Professional role validation (e.g., MÉDICO CLÍNICO, MÉDICO GENERALISTA, MÉDICO DE FAMÍLIA).
+- Establishment service type verification.
 - Date range validation.
 
 ## 🔍 Validation Criteria

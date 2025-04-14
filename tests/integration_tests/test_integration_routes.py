@@ -151,7 +151,6 @@ class SSEListener:
                 self.response.close()
 
 # -------------- Health Endpoint --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_health_success(health_endpoint):
     resp = requests.get(health_endpoint, timeout=10)
     assert resp.status_code == 200
@@ -160,7 +159,6 @@ def test_health_success(health_endpoint):
     assert data['database'] == 'connected'
 
 # -------------- Process Eligible --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_process_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
     data = {"cpf": "11111111111", "name": "Eligible Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
@@ -185,7 +183,6 @@ def test_process_eligible_professional(stub_run_services, process_endpoint, even
     assert listener.progress_events
 
 # -------------- Process Not Eligible --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_process_not_eligible_professional(stub_run_services, process_endpoint, events_endpoint):
     data = {"cpf": "22222222222", "name": "Not Eligible Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
@@ -209,7 +206,6 @@ def test_process_not_eligible_professional(stub_run_services, process_endpoint, 
     assert result['pending_months'] > 0
 
 # -------------- Process Not Found --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_process_professional_not_found(stub_run_services, process_endpoint, events_endpoint):
     data = {"cpf": "33333333333", "name": "Not Found Professional"}
     resp = requests.post(process_endpoint, json=data, timeout=5)
@@ -230,19 +226,17 @@ def test_process_professional_not_found(stub_run_services, process_endpoint, eve
     assert 'Profissional não encontrado' in listener.error_event['error']
 
 # -------------- Invalid Input --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_invalid_input_data(process_endpoint):
     resp = requests.post(process_endpoint, json={"cpf": "123"}, timeout=5)
     assert resp.status_code in (400, 422)
 
 # -------------- SSE Functionality --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_create_new_sse_client(events_endpoint):
     resp = requests.get(events_endpoint, stream=True, timeout=5)
     assert resp.status_code == 200
     assert 'text/event-stream' in resp.headers.get('Content-Type')
     resp.close()
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
+
 def test_multiple_sse_connections(events_endpoint):
     conns = []
     for _ in range(3):
@@ -253,7 +247,6 @@ def test_multiple_sse_connections(events_endpoint):
         r.close()
 
 # -------------- Error Handling (others) --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_external_service_error(monkeypatch, process_endpoint, events_endpoint):
     monkeypatch.setattr(
         'interfaces.csv_scraper.CSVScraper.get_csv_data',
@@ -276,7 +269,6 @@ def test_external_service_error(monkeypatch, process_endpoint, events_endpoint):
     assert listener.error_event is not None
     assert listener.error_event['status_code'] == 404
 
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_establishment_validation_error(monkeypatch, process_endpoint, events_endpoint):
     # stub CSV
     monkeypatch.setattr(
@@ -308,7 +300,6 @@ def test_establishment_validation_error(monkeypatch, process_endpoint, events_en
     assert listener.error_event is not None
     assert listener.error_event['status_code'] == 422
 
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_data_processing_error(monkeypatch, process_endpoint, events_endpoint):
     # stub CSV
     monkeypatch.setattr(
@@ -340,14 +331,14 @@ def test_data_processing_error(monkeypatch, process_endpoint, events_endpoint):
     assert listener.error_event is not None
     assert listener.error_event['status_code'] == 422
 
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
+
 def test_sse_invalid_request_id(events_endpoint):
     r = requests.get(f"{events_endpoint}?request_id=invalid-id", stream=True, timeout=5)
     assert r.status_code == 200
     assert 'text/event-stream' in r.headers.get('Content-Type')
     r.close()
 
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
+
 def test_invalid_csv_format(monkeypatch, process_endpoint, events_endpoint):
     monkeypatch.setattr(
         'interfaces.csv_scraper.CSVScraper.get_csv_data',
@@ -372,7 +363,6 @@ def test_invalid_csv_format(monkeypatch, process_endpoint, events_endpoint):
     assert 'formato de dados inválido' in msg
 
 # -------------- Non-existent endpoint --------------
-@pytest.mark.skip(reason="Takes too long. Temporary skip")
 def test_nonexistent_endpoint(test_server):
     r = requests.get(f"{BASE_URL}/no_such_route", timeout=5)
     assert r.status_code == 404
