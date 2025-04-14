@@ -1,22 +1,30 @@
 services:
   - type: web
     name: temfc-backend
-    env: docker
     plan: free
+    region: us-west
+    env: docker
+    autoDeploy: false
+    dockerImage: victortsrodrigues/temfc-backend:latest
+
     healthCheckPath: /health
-    buildCommand: docker build -t temfc-backend .
-    startCommand: docker run --shm-size=256m -p $PORT:5000 temfc-backend
+
     envVars:
       - key: DB_HOST
-        sync: false
+        fromSecret: DB_HOST
       - key: DB_PORT
-        sync: false
+        fromSecret: DB_PORT
       - key: DB_NAME
-        sync: false
+        fromSecret: DB_NAME
       - key: DB_USER
-        sync: false
+        fromSecret: DB_USER
       - key: DB_PASSWORD
-        sync: false
-      - key: GUNICORN_WORKER_TIMEOUT
-        value: 120
-    autoDeploy: true
+        fromSecret: DB_PASSWORD
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONPATH
+        value: /app/src
+      - key: PORT
+        value: "5000"
+
+    shmSize: 256mb
