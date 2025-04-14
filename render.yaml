@@ -1,11 +1,12 @@
 services:
   - type: web
     name: temfc-backend
+    runtime: image
     plan: free
     region: us-west
-    env: docker
+    dockerfilePath: ./Dockerfile
     autoDeploy: false
-    dockerImage: victortsrodrigues/temfc-backend:latest
+    image: docker.io/victortsrodrigues/temfc-backend:latest
 
     healthCheckPath: /health
 
@@ -26,5 +27,3 @@ services:
         value: /app/src
       - key: PORT
         value: "5000"
-
-    shmSize: 256mb
