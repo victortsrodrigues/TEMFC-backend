@@ -30,6 +30,11 @@ jobs:
         run: |
           python -m pytest -m unit -v --timeout=60
         env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           PYTHONPATH: ${{ github.workspace }}/src
   
   integration-tests:
