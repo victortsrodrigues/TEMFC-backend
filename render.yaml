@@ -6,7 +6,8 @@ services:
     region: us-west
     dockerfilePath: ./Dockerfile
     autoDeploy: false
-    image: docker.io/victortsrodrigues/temfc-backend:latest
+    image:
+      url: docker.io/victortsrodrigues/temfc-backend:latest
 
     healthCheckPath: /health
 
