@@ -50,8 +50,10 @@ TEMFC-backend/
 ├── tests/
 ├── .env.example
 ├── Dockerfile
+├── pytest.ini
 ├── requirements.txt
 ├── README.md
+└── .github/workflows/cd.yml
 ```
 
 ---
@@ -181,7 +183,15 @@ Pipeline file: `.github/workflows/ci-cd.yml`
 ---
 
 ## 📬 Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+Pull requests are welcome!  
+For major changes, please open an issue first to discuss what you'd like to change.
+
+To contribute:
+1. Fork the repository  
+2. Create a feature branch  
+3. Commit your changes with clear messages  
+4. Ensure tests are included if applicable  
+5. Open a pull request 
 
 ---
 
