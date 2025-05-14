@@ -25,3 +25,5 @@ htmlcov/
 
 # File not needed for the api
 src/interfaces/report_generator.py
+
+.qodo
