@@ -1,4 +1,3 @@
-import logging
 from flask import Flask
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
@@ -6,7 +5,6 @@ from werkzeug.exceptions import HTTPException
 from errors.base_error import BaseError
 from core.services.core_service import Services
 from utils.sse_manager import sse_manager
-from utils.keepAlive import keep_alive
 
 
 def create_app(config=None):
@@ -39,9 +37,6 @@ def create_app(config=None):
     # Register routes
     register_routes(app)
     
-    # Start the keep-alive service if we're in production
-    if app.config.get('ENV') == 'production' or app.config.get('START_KEEP_ALIVE', False):
-        keep_alive.start()
     
     return app
 
